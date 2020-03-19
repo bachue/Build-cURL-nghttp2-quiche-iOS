@@ -9,9 +9,9 @@
 # Bochun Bai
 #   https://github.com/sinofool/build-libcurl-ios
 # Jason Cox, @jasonacox
-#   https://github.com/jasonacox/Build-OpenSSL-cURL 
+#   https://github.com/jasonacox/Build-OpenSSL-cURL
 # Preston Jennings
-#   https://github.com/prestonj/Build-OpenSSL-cURL 
+#   https://github.com/prestonj/Build-OpenSSL-cURL
 
 set -e
 
@@ -34,9 +34,9 @@ alertdim="\033[0m${red}\033[2m"
 trap 'echo -e "${alert}** ERROR with Build - Check /tmp/curl*.log${alertdim}"; tail -3 /tmp/curl*.log' INT TERM EXIT
 
 CURL_VERSION="curl-7.50.1"
-IOS_SDK_VERSION="" 
+IOS_SDK_VERSION=""
 IOS_MIN_SDK_VERSION="7.1"
-TVOS_SDK_VERSION="" 
+TVOS_SDK_VERSION=""
 TVOS_MIN_SDK_VERSION="9.0"
 IPHONEOS_DEPLOYMENT_TARGET="6.0"
 nohttp2="0"
@@ -55,7 +55,7 @@ usage ()
 	echo "         -b   compile without bitcode"
 	echo "         -n   compile with nghttp2"
 	echo "         -x   disable color output"
-	echo "         -h   show usage"	
+	echo "         -h   show usage"
 	echo
 	trap - INT TERM EXIT
 	exit 127
@@ -97,13 +97,12 @@ while getopts "v:s:t:i:nbxh\?" o; do
 done
 shift $((OPTIND-1))
 
-OPENSSL="${PWD}/../openssl"  
 DEVELOPER=`xcode-select -print-path`
 
 # HTTP2 support
 if [ $nohttp2 == "1" ]; then
 	# nghttp2 will be in ../nghttp2/{Platform}/{arch}
-	NGHTTP2="${PWD}/../nghttp2"  
+	NGHTTP2="${PWD}/../nghttp2"
 fi
 
 if [ $nohttp2 == "1" ]; then
@@ -113,6 +112,9 @@ else
 	NGHTTP2CFG=""
 	NGHTTP2LIB=""
 fi
+
+NGHTTP3="${PWD}/../nghttp3"
+NGTCP2="${PWD}/../ngtcp2"
 
 buildMac()
 {
@@ -127,20 +129,26 @@ buildMac()
 		TARGET="darwin64-x86_64-cc"
 	fi
 
-	if [ $nohttp2 == "1" ]; then 
+	if [ $nohttp2 == "1" ]; then
 		NGHTTP2CFG="--with-nghttp2=${NGHTTP2}/Mac/${ARCH}"
 		NGHTTP2LIB="-L${NGHTTP2}/Mac/${ARCH}/lib"
 	fi
-	
+	NGHTTP3CFG="--with-nghttp3=${NGHTTP3}/Mac/${ARCH}"
+	NGHTTP3LIB="-L${NGHTTP3}/Mac/${ARCH}/lib"
+
+	NGTCP2CFG="--with-ngtcp2=${NGTCP2}/Mac/${ARCH}"
+	NGTCP2LIB="-L${NGTCP2}/Mac/${ARCH}/lib"
+
 	export CC="${BUILD_TOOLS}/usr/bin/clang"
 	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -fembed-bitcode"
-	export LDFLAGS="-arch ${ARCH} -L${OPENSSL}/Mac/lib ${NGHTTP2LIB}"
+	export LDFLAGS="-arch ${ARCH} -Wl,-rpath,/tmp/openssl-${ARCH}/lib"
+    export PKG_CONFIG_PATH="/tmp/openssl-${ARCH}/lib/pkgconfig:$(PWD)/../nghttp3/Mac/${ARCH}/lib/pkgconfig:$(PWD)/../ngtcp2/Mac/${ARCH}/lib/pkgconfig"
 	pushd . > /dev/null
 	cd "${CURL_VERSION}"
-	./configure -prefix="/tmp/${CURL_VERSION}-${ARCH}" --disable-shared --enable-static -with-random=/dev/urandom --with-ssl=${OPENSSL}/Mac ${NGHTTP2CFG} --host=${HOST} &> "/tmp/${CURL_VERSION}-${ARCH}.log"
+	./configure -prefix="/tmp/${CURL_VERSION}-${ARCH}" --disable-shared --enable-static -with-random=/dev/urandom --with-ssl=/tmp/openssl-${ARCH} ${NGHTTP2CFG} ${NGHTTP3CFG} ${NGTCP2CFG} --host=${HOST} --enable-alt-svc &> "/tmp/${CURL_VERSION}-${ARCH}.log"
 
 	make -j8 >> "/tmp/${CURL_VERSION}-${ARCH}.log" 2>&1
-	make install >> "/tmp/${CURL_VERSION}-${ARCH}.log" 2>&1
+	make install -j8 >> "/tmp/${CURL_VERSION}-${ARCH}.log" 2>&1
 	# Save curl binary for Mac Version
 	cp "/tmp/${CURL_VERSION}-${ARCH}/bin/curl" "/tmp/curl"
 	make clean >> "/tmp/${CURL_VERSION}-${ARCH}.log" 2>&1
@@ -154,7 +162,7 @@ buildIOS()
 
 	pushd . > /dev/null
 	cd "${CURL_VERSION}"
-  
+
 	if [[ "${ARCH}" == "i386" || "${ARCH}" == "x86_64" ]]; then
 		PLATFORM="iPhoneSimulator"
 	else
@@ -162,34 +170,40 @@ buildIOS()
 	fi
 
 	if [[ "${BITCODE}" == "nobitcode" ]]; then
-		CC_BITCODE_FLAG=""	
+		CC_BITCODE_FLAG=""
 	else
-		CC_BITCODE_FLAG="-fembed-bitcode"	
+		CC_BITCODE_FLAG="-fembed-bitcode"
 	fi
 
-	if [ $nohttp2 == "1" ]; then 
+	if [ $nohttp2 == "1" ]; then
 		NGHTTP2CFG="--with-nghttp2=${NGHTTP2}/iOS/${ARCH}"
 		NGHTTP2LIB="-L${NGHTTP2}/iOS/${ARCH}/lib"
 	fi
-	  
+	NGHTTP3CFG="--with-nghttp3=${NGHTTP3}/iOS/${ARCH}"
+	NGHTTP3LIB="-L${NGHTTP3}/iOS/${ARCH}/lib"
+
+	NGTCP2CFG="--with-ngtcp2=${NGTCP2}/iOS/${ARCH}"
+	NGTCP2LIB="-L${NGTCP2}/iOS/${ARCH}/lib"
+
 	export $PLATFORM
 	export CROSS_TOP="${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer"
 	export CROSS_SDK="${PLATFORM}${IOS_SDK_VERSION}.sdk"
 	export BUILD_TOOLS="${DEVELOPER}"
 	export CC="${BUILD_TOOLS}/usr/bin/gcc"
 	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -miphoneos-version-min=${IOS_MIN_SDK_VERSION} ${CC_BITCODE_FLAG}"
-	export LDFLAGS="-arch ${ARCH} -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -L${OPENSSL}/iOS/lib ${NGHTTP2LIB}"
-   
+	export LDFLAGS="-arch ${ARCH} -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -Wl,-rpath,/tmp/openssl-iOS-${ARCH}/lib"
+    export PKG_CONFIG_PATH="/tmp/openssl-iOS-${ARCH}/lib/pkgconfig:$(PWD)/../nghttp3/iOS/${ARCH}/lib/pkgconfig:$(PWD)/../ngtcp2/iOS/${ARCH}/lib/pkgconfig"
+
 	echo -e "${subbold}Building ${CURL_VERSION} for ${PLATFORM} ${IOS_SDK_VERSION} ${archbold}${ARCH}${dim} ${BITCODE}"
 
 	if [[ "${ARCH}" == *"arm64"* || "${ARCH}" == "arm64e" ]]; then
-		./configure -prefix="/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}" --disable-shared --enable-static -with-random=/dev/urandom --with-ssl=${OPENSSL}/iOS ${NGHTTP2CFG} --host="arm-apple-darwin" &> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log"
+		./configure -prefix="/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}" --disable-shared --enable-static -with-random=/dev/urandom --with-ssl=/tmp/openssl-iOS-${ARCH} ${NGHTTP2CFG} ${NGHTTP3CFG} ${NGTCP2CFG} --host="arm-apple-darwin" --enable-alt-svc &> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log"
 	else
-		./configure -prefix="/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}" --disable-shared --enable-static -with-random=/dev/urandom --with-ssl=${OPENSSL}/iOS ${NGHTTP2CFG} --host="${ARCH}-apple-darwin" &> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log"
+		./configure -prefix="/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}" --disable-shared --enable-static -with-random=/dev/urandom --with-ssl=/tmp/openssl-iOS-${ARCH} ${NGHTTP2CFG} ${NGHTTP3CFG} ${NGTCP2CFG} --host="${ARCH}-apple-darwin" --enable-alt-svc &> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log"
 	fi
 
 	make -j8 >> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
-	make install >> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
+	make install -j8 >> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
 	make clean >> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
 	popd > /dev/null
 }
@@ -200,37 +214,42 @@ buildTVOS()
 
 	pushd . > /dev/null
 	cd "${CURL_VERSION}"
-  
+
 	if [[ "${ARCH}" == "i386" || "${ARCH}" == "x86_64" ]]; then
 		PLATFORM="AppleTVSimulator"
 	else
 		PLATFORM="AppleTVOS"
 	fi
-	
-	if [ $nohttp2 == "1" ]; then 
+
+	if [ $nohttp2 == "1" ]; then
 		NGHTTP2CFG="--with-nghttp2=${NGHTTP2}/tvOS/${ARCH}"
 		NGHTTP2LIB="-L${NGHTTP2}/tvOS/${ARCH}/lib"
 	fi
-  
+	NGHTTP3CFG="--with-nghttp3=${NGHTTP3}/tvOS/${ARCH}"
+	NGHTTP3LIB="-L${NGHTTP3}/tvOS/${ARCH}/lib"
+
+	NGTCP2CFG="--with-ngtcp2=${NGTCP2}/tvOS/${ARCH}"
+	NGTCP2LIB="-L${NGTCP2}/tvOS/${ARCH}/lib"
+
 	export $PLATFORM
 	export CROSS_TOP="${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer"
 	export CROSS_SDK="${PLATFORM}${TVOS_SDK_VERSION}.sdk"
 	export BUILD_TOOLS="${DEVELOPER}"
 	export CC="${BUILD_TOOLS}/usr/bin/gcc"
 	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -mtvos-version-min=${TVOS_MIN_SDK_VERSION} -fembed-bitcode"
-	export LDFLAGS="-arch ${ARCH} -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -L${OPENSSL}/tvOS/lib ${NGHTTP2LIB}"
-#	export PKG_CONFIG_PATH 
-   
+	export LDFLAGS="-arch ${ARCH} -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -Wl,-rpath,/tmp/openssl-tvOS-${ARCH}/lib"
+    export PKG_CONFIG_PATH="/tmp/openssl-tvOS-${ARCH}/lib/pkgconfig:$(PWD)/../nghttp3/tvOS/${ARCH}/lib/pkgconfig:$(PWD)/../ngtcp2/tvOS/${ARCH}/lib/pkgconfig"
+
 	echo -e "${subbold}Building ${CURL_VERSION} for ${PLATFORM} ${TVOS_SDK_VERSION} ${archbold}${ARCH}${dim}"
 
-	./configure -prefix="/tmp/${CURL_VERSION}-tvOS-${ARCH}" --host="arm-apple-darwin" --disable-shared -with-random=/dev/urandom --disable-ntlm-wb --with-ssl="${OPENSSL}/tvOS" ${NGHTTP2CFG} &> "/tmp/${CURL_VERSION}-tvOS-${ARCH}.log"
+	./configure -prefix="/tmp/${CURL_VERSION}-tvOS-${ARCH}" --host="arm-apple-darwin" --disable-shared -with-random=/dev/urandom --disable-ntlm-wb --with-ssl="/tmp/openssl-tvOS-${ARCH}" ${NGHTTP2CFG} ${NGHTTP3CFG} ${NGTCP2CFG} --enable-alt-svc &> "/tmp/${CURL_VERSION}-tvOS-${ARCH}.log"
 
 	# Patch to not use fork() since it's not available on tvOS
-        LANG=C sed -i -- 's/define HAVE_FORK 1/define HAVE_FORK 0/' "./lib/curl_config.h"
-        LANG=C sed -i -- 's/HAVE_FORK"]=" 1"/HAVE_FORK\"]=" 0"/' "config.status"
+    LANG=C sed -i -- 's/define HAVE_FORK 1/define HAVE_FORK 0/' "./lib/curl_config.h"
+    LANG=C sed -i -- 's/HAVE_FORK"]=" 1"/HAVE_FORK\"]=" 0"/' "config.status"
 
 	make -j8 >> "/tmp/${CURL_VERSION}-tvOS-${ARCH}.log" 2>&1
-	make install >> "/tmp/${CURL_VERSION}-tvOS-${ARCH}.log" 2>&1
+	make install -j8 >> "/tmp/${CURL_VERSION}-tvOS-${ARCH}.log" 2>&1
 	make clean >> "/tmp/${CURL_VERSION}-tvOS-${ARCH}.log" 2>&1
 	popd > /dev/null
 }

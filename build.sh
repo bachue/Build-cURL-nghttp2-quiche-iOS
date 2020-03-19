@@ -1,17 +1,19 @@
 #!/bin/bash
 
-# This script builds openssl+libcurl libraries for MacOS, iOS and tvOS 
+# This script builds openssl+libcurl+nghttp2+ngtcp2+nghttp3 libraries for MacOS, iOS and tvOS
 #
+# Credits:
 # Jason Cox, @jasonacox
 #   https://github.com/jasonacox/Build-OpenSSL-cURL
+# Bachue Zhou, @bachue
+#   https://github.com/bachue/Build-OpenSSL-cURL
 #
 
 ################################################
 # EDIT this section to Select Default Versions #
 ################################################
 
-OPENSSL="1.1.1d"	# https://www.openssl.org/source/
-LIBCURL="7.68.0"	# https://curl.haxx.se/download.html
+LIBCURL="7.69.1"	# https://curl.haxx.se/download.html
 NGHTTP2="1.40.0"	# https://nghttp2.org/
 
 ################################################
@@ -19,6 +21,8 @@ NGHTTP2="1.40.0"	# https://nghttp2.org/
 # Global flags
 engine=""
 buildnghttp2="-n"
+buildngtcp2="-n"
+buildnghttp3="-n"
 disablebitcode=""
 colorflag=""
 
@@ -41,9 +45,8 @@ usage ()
     echo
 	echo -e "${bold}Usage:${normal}"
 	echo
-	echo -e "  ${subbold}$0${normal} [-o ${dim}<OpenSSL version>${normal}] [-c ${dim}<curl version>${normal}] [-n ${dim}<nghttp2 version>${normal}] [-d] [-e] [-x] [-h]"
-	echo 
-	echo "         -o <version>   Build OpenSSL version (default $OPENSSL)"
+	echo -e "  ${subbold}$0${normal} [-c ${dim}<curl version>${normal}] [-n ${dim}<nghttp2 version>${normal}] [-d] [-e] [-x] [-h]"
+	echo
 	echo "         -c <version>   Build curl version (default $LIBCURL)"
 	echo "         -n <version>   Build nghttp2 version (default $NGHTTP2)"
 	echo "         -d             Compile without HTTP2 support"
@@ -51,15 +54,12 @@ usage ()
 	echo "         -b             Compile without bitcode"
 	echo "         -x             No color output"
 	echo "         -h             Show usage"
-	echo 
+	echo
     exit 127
 }
 
 while getopts "o:c:n:dexh\?" o; do
     case "${o}" in
-		o)
-			OPENSSL="${OPTARG}"
-			;;
 		c)
 			LIBCURL="${OPTARG}"
 			;;
@@ -97,21 +97,50 @@ echo "This script builds OpenSSL, nghttp2 and libcurl for MacOS (OS X), iOS and 
 echo "Targets: x86_64, armv7, armv7s, arm64 and arm64e"
 echo
 
+set -e
+
 ## OpenSSL Build
 echo
-cd openssl 
+cd openssl
 echo -e "${bold}Building OpenSSL${normal}"
-./openssl-build.sh -v "$OPENSSL" $engine $colorflag
+./openssl-build.sh $engine $colorflag
 cd ..
 
 ## Nghttp2 Build
 if [ "$buildnghttp2" == "" ]; then
-	NGHTTP2="NONE"	
-else 
+	NGHTTP2="NONE"
+else
 	echo
 	echo -e "${bold}Building nghttp2 for HTTP2 support${normal}"
 	cd nghttp2
 	./nghttp2-build.sh -v "$NGHTTP2" $colorflag
+	cd ..
+fi
+
+## Ngtcp2 Build
+if [ -n "$buildngtcp2" ]; then
+	echo
+	echo -e "${bold}Building ngtcp2 for HTTP3 support${normal}"
+	cd ngtcp2
+	./ngtcp2-build.sh $colorflag
+	cd ..
+fi
+
+## Nghttp3 Build
+if [ -n "$buildnghttp3" ]; then
+	echo
+	echo -e "${bold}Building nghttp3 for HTTP3 support${normal}"
+	cd nghttp3
+	./nghttp3-build.sh $colorflag
+	cd ..
+fi
+
+## Ngtcp2 Build
+if [ -n "$buildngtcp2" ]; then
+	echo
+	echo -e "${bold}Building ngtcp2 for HTTP3 support${normal}"
+	cd ngtcp2
+	./ngtcp2-build.sh $colorflag
 	cd ..
 fi
 
@@ -122,7 +151,7 @@ cd curl
 ./libcurl-build.sh -v "$LIBCURL" $disablebitcode $colorflag $buildnghttp2
 cd ..
 
-echo 
+echo
 echo -e "${bold}Libraries...${normal}"
 echo
 echo -e "${subbold}openssl${normal} [${dim}$OPENSSL${normal}]${dim}"
@@ -175,6 +204,8 @@ cp openssl/iOS/include/openssl/* "$EXAMPLE/include/openssl/"
 cp curl/include/curl/* "$EXAMPLE/include/curl/"
 cp curl/lib/libcurl_iOS.a "$EXAMPLE/libs/libcurl.a"
 cp nghttp2/lib/libnghttp2_iOS.a "$EXAMPLE/libs/libnghttp2.a"
+cp ngtcp2/lib/libngtcp2_iOS.a "$EXAMPLE/libs/libngtcp2.a"
+cp ngtcp2/lib/libngtcp2_crypto_openssl_iOS.a "$EXAMPLE/libs/libngtcp2_crypto_openssl.a"
 cp $ARCHIVE/cacert.pem "$EXAMPLE/cacert.pem"
 echo
 echo -e "${bold}Archiving Mac binaries for curl and openssl...${dim}"

@@ -208,7 +208,7 @@ int iOSCurlProgressCallback(void *clientp, double dltotal, double dlnow, double 
         curl_easy_setopt(_curl, CURLOPT_MAXCONNECTS, 0L); // this should disallow connection sharing
         curl_easy_setopt(_curl, CURLOPT_FORBID_REUSE, 1L); // enforce connection to be closed
         curl_easy_setopt(_curl, CURLOPT_DNS_CACHE_TIMEOUT, 0L); // Disable DNS cache
-        curl_easy_setopt(_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0); // enable HTTP2 Protocol
+        curl_easy_setopt(_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_3); // enable HTTP2 Protocol
         curl_easy_setopt(_curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_DEFAULT); // Force TLSv1 protocol - Default
         curl_easy_setopt(_curl, CURLOPT_SSL_CIPHER_LIST, [@"ALL" UTF8String]);
         curl_easy_setopt(_curl, CURLOPT_SSL_VERIFYHOST, 0L);   // 1L to verify, 0L to disable

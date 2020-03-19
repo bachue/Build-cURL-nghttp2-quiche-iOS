@@ -19,6 +19,9 @@
 		1B4AA2671DE1FCA5008187BD /* libcurl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B4AA2631DE1FCA5008187BD /* libcurl.a */; };
 		1B4AA2681DE1FCA5008187BD /* libnghttp2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B4AA2641DE1FCA5008187BD /* libnghttp2.a */; };
 		1B4AA2691DE1FCA5008187BD /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B4AA2651DE1FCA5008187BD /* libssl.a */; };
+		E782FE522425CBD3002DB3FB /* libnghttp3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E782FE4E2425C7E2002DB3FB /* libnghttp3.a */; };
+		E782FE532425CBD3002DB3FB /* libngtcp2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E782FE4F2425C7E2002DB3FB /* libngtcp2.a */; };
+		E782FE552425CFB9002DB3FB /* libngtcp2_crypto_openssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E782FE542425CFB9002DB3FB /* libngtcp2_crypto_openssl.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +41,9 @@
 		1B4AA2631DE1FCA5008187BD /* libcurl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcurl.a; path = libs/libcurl.a; sourceTree = "<group>"; };
 		1B4AA2641DE1FCA5008187BD /* libnghttp2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnghttp2.a; path = libs/libnghttp2.a; sourceTree = "<group>"; };
 		1B4AA2651DE1FCA5008187BD /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = libs/libssl.a; sourceTree = "<group>"; };
+		E782FE4E2425C7E2002DB3FB /* libnghttp3.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libnghttp3.a; path = libs/libnghttp3.a; sourceTree = "<group>"; };
+		E782FE4F2425C7E2002DB3FB /* libngtcp2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libngtcp2.a; path = libs/libngtcp2.a; sourceTree = "<group>"; };
+		E782FE542425CFB9002DB3FB /* libngtcp2_crypto_openssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libngtcp2_crypto_openssl.a; path = libs/libngtcp2_crypto_openssl.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,11 +51,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1B4AA24E1DE18290008187BD /* libz.tbd in Frameworks */,
-				1B4AA2681DE1FCA5008187BD /* libnghttp2.a in Frameworks */,
-				1B4AA2671DE1FCA5008187BD /* libcurl.a in Frameworks */,
-				1B4AA2691DE1FCA5008187BD /* libssl.a in Frameworks */,
+				E782FE552425CFB9002DB3FB /* libngtcp2_crypto_openssl.a in Frameworks */,
+				E782FE522425CBD3002DB3FB /* libnghttp3.a in Frameworks */,
+				E782FE532425CBD3002DB3FB /* libngtcp2.a in Frameworks */,
 				1B4AA2661DE1FCA5008187BD /* libcrypto.a in Frameworks */,
+				1B4AA2671DE1FCA5008187BD /* libcurl.a in Frameworks */,
+				1B4AA2681DE1FCA5008187BD /* libnghttp2.a in Frameworks */,
+				1B4AA2691DE1FCA5008187BD /* libssl.a in Frameworks */,
+				1B4AA24E1DE18290008187BD /* libz.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -101,6 +110,9 @@
 		1B4AA24C1DE18290008187BD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E782FE542425CFB9002DB3FB /* libngtcp2_crypto_openssl.a */,
+				E782FE4E2425C7E2002DB3FB /* libnghttp3.a */,
+				E782FE4F2425C7E2002DB3FB /* libngtcp2.a */,
 				1B4AA2621DE1FCA5008187BD /* libcrypto.a */,
 				1B4AA2631DE1FCA5008187BD /* libcurl.a */,
 				1B4AA2641DE1FCA5008187BD /* libnghttp2.a */,
@@ -141,7 +153,7 @@
 				TargetAttributes = {
 					1B4AA2181DE16AEF008187BD = {
 						CreatedOnToolsVersion = 8.0;
-						DevelopmentTeam = 3VBZPX2GZ9;
+						DevelopmentTeam = K6C23F22JT;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -325,7 +337,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				DEVELOPMENT_TEAM = 3VBZPX2GZ9;
+				DEVELOPMENT_TEAM = K6C23F22JT;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/include/**",
@@ -335,8 +347,9 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/libs/**",
+					"$(PROJECT_DIR)/libs",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jasonacox.iOS-Test-App";
+				PRODUCT_BUNDLE_IDENTIFIER = "iOS-Test-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USE_HEADERMAP = YES;
 			};
@@ -346,7 +359,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				DEVELOPMENT_TEAM = 3VBZPX2GZ9;
+				DEVELOPMENT_TEAM = K6C23F22JT;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/include/**",
@@ -356,8 +369,9 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/libs/**",
+					"$(PROJECT_DIR)/libs",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.jasonacox.iOS-Test-App";
+				PRODUCT_BUNDLE_IDENTIFIER = "iOS-Test-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USE_HEADERMAP = YES;
 			};
