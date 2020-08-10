@@ -13,8 +13,8 @@
 # EDIT this section to Select Default Versions #
 ################################################
 
-LIBCURL="7.69.1"	# https://curl.haxx.se/download.html
-NGHTTP2="1.40.0"	# https://nghttp2.org/
+LIBCURL="7.71.1"	# https://curl.haxx.se/download.html
+NGHTTP2="1.42.0"	# https://nghttp2.org/
 
 ################################################
 

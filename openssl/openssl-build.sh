@@ -229,7 +229,7 @@ rm -rf "/tmp/openssl-*.log"
 rm -rf "openssl"
 
 echo "Cloning openssl"
-git clone --depth 1 -b OpenSSL_1_1_1d-quic-draft-27 https://github.com/tatsuhiro-t/openssl.git
+git clone --depth 1 -b OpenSSL_1_1_1g-quic-draft-29 https://github.com/tatsuhiro-t/openssl.git
 
 echo "** Building OpenSSL 1.1.1 **"
 
