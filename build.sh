@@ -92,8 +92,8 @@ done
 shift $((OPTIND-1))
 
 ## Welcome
-echo -e "${bold}Build-OpenSSL-cURL${dim}"
-echo "This script builds OpenSSL, nghttp2 and libcurl for MacOS (OS X), iOS and tvOS devices."
+echo -e "${bold}Build-cURL-nghttp2-nghttp3-ngtcp2${dim}"
+echo "This script builds OpenSSL, nghttp2, ngtcp2, nghttp3 and libcurl for MacOS (OS X), iOS and tvOS devices."
 echo "Targets: x86_64, armv7, armv7s, arm64 and arm64e"
 echo
 
