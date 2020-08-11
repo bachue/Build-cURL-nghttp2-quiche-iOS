@@ -6,7 +6,7 @@
 # Jason Cox, @jasonacox
 #   https://github.com/jasonacox/Build-OpenSSL-cURL
 # Bachue Zhou, @bachue
-#   https://github.com/bachue/Build-OpenSSL-cURL
+#   https://github.com/bachue/Build-cURL-nghttp2-nghttp3-ngtcp2
 #
 
 ################################################
@@ -14,7 +14,7 @@
 ################################################
 
 LIBCURL="7.71.1"	# https://curl.haxx.se/download.html
-NGHTTP2="1.42.0"	# https://nghttp2.org/
+NGHTTP2="1.41.0"	# https://nghttp2.org/
 
 ################################################
 
