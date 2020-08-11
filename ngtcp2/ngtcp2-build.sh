@@ -262,6 +262,7 @@ rm -rf "ngtcp2"
 
 echo "Cloning ngtcp2"
 git clone https://github.com/ngtcp2/ngtcp2.git
+(cd ngtcp2 && git checkout -f a09a480c6d3d2ef7633bea55bfd3cf5457b04086)
 
 echo -e "${bold}Building Mac libraries${dim}"
 buildMac "x86_64"
