@@ -33,7 +33,7 @@ alertdim="\033[0m${red}\033[2m"
 # set trap to help debug any build errors
 trap 'echo -e "${alert}** ERROR with Build - Check /tmp/curl*.log${alertdim}"; tail -3 /tmp/curl*.log' INT TERM EXIT
 
-CURL_VERSION="curl-7.50.1"
+CURL_VERSION="curl-7.71.1"
 IOS_SDK_VERSION=""
 IOS_MIN_SDK_VERSION="7.1"
 TVOS_SDK_VERSION=""
@@ -127,6 +127,40 @@ else
 	NGTCP2LIB=""
 fi
 
+checkTool()
+{
+    TOOL=$1
+    PKG=$2
+
+    if (type "$1" > /dev/null) ; then
+        echo "  $2 already installed"
+    else
+        echo -e "${alertdim}** WARNING: $2 not installed... attempting to install.${dim}"
+
+        # Check to see if Brew is installed
+        if ! type "brew" > /dev/null; then
+            echo -e "${alert}** FATAL ERROR: brew not installed - unable to install $2 - exiting.${normal}"
+            exit
+        else
+            echo "  brew installed - using to install $2"
+            brew install "$2"
+        fi
+
+        # Check to see if installation worked
+        if (type "$1" > /dev/null) ; then
+            echo "  SUCCESS: $2 installed"
+        else
+            echo -e "${alert}** FATAL ERROR: $2 failed to install - exiting.${normal}"
+            exit
+        fi
+    fi
+}
+
+checkTool autoreconf autoconf
+checkTool aclocal automake
+checkTool libtool libtool
+checkTool git git
+
 buildMac()
 {
 	ARCH=$1
@@ -157,7 +191,7 @@ buildMac()
     export PKG_CONFIG_PATH="/tmp/openssl-${ARCH}/lib/pkgconfig:$(PWD)/../nghttp3/Mac/${ARCH}/lib/pkgconfig:$(PWD)/../ngtcp2/Mac/${ARCH}/lib/pkgconfig"
 	pushd . > /dev/null
 	cd "${CURL_VERSION}"
-	./configure -prefix="/tmp/${CURL_VERSION}-${ARCH}" --disable-shared --enable-static -with-random=/dev/urandom --with-ssl=/tmp/openssl-${ARCH} ${NGHTTP2CFG} ${NGHTTP3CFG} ${NGTCP2CFG} --host=${HOST} --enable-alt-svc &> "/tmp/${CURL_VERSION}-${ARCH}.log"
+	./configure -prefix="/tmp/${CURL_VERSION}-${ARCH}" --disable-shared --enable-optimize --enable-static --enable-ipv6 --with-random=/dev/urandom --with-ssl=/tmp/openssl-${ARCH} ${NGHTTP2CFG} ${NGHTTP3CFG} ${NGTCP2CFG} --host=${HOST} --enable-alt-svc &> "/tmp/${CURL_VERSION}-${ARCH}.log"
 
 	make -j8 >> "/tmp/${CURL_VERSION}-${ARCH}.log" 2>&1
 	make install -j8 >> "/tmp/${CURL_VERSION}-${ARCH}.log" 2>&1
@@ -256,6 +290,7 @@ buildTVOS()
 
 	echo -e "${subbold}Building ${CURL_VERSION} for ${PLATFORM} ${TVOS_SDK_VERSION} ${archbold}${ARCH}${dim}"
 
+    autoreconf -i
 	./configure -prefix="/tmp/${CURL_VERSION}-tvOS-${ARCH}" --host="arm-apple-darwin" --disable-shared -with-random=/dev/urandom --disable-ntlm-wb --with-ssl="/tmp/openssl-tvOS-${ARCH}" ${NGHTTP2CFG} ${NGHTTP3CFG} ${NGTCP2CFG} --enable-alt-svc &> "/tmp/${CURL_VERSION}-tvOS-${ARCH}.log"
 
 	# Patch to not use fork() since it's not available on tvOS
@@ -279,15 +314,18 @@ rm -rf "/tmp/${CURL_VERSION}-*.log"
 
 rm -rf "${CURL_VERSION}"
 
-if [ ! -e ${CURL_VERSION}.tar.gz ]; then
-	echo "Downloading ${CURL_VERSION}.tar.gz"
-	curl -LO https://curl.haxx.se/download/${CURL_VERSION}.tar.gz
+if [ ! -e ${CURL_VERSION}.zip ]; then
+	echo "Downloading ${CURL_VERSION}.zip"
+	# curl -LO https://curl.haxx.se/download/${CURL_VERSION}.tar.gz
+    wget -O ${CURL_VERSION}.zip https://github.com/curl/curl/archive/master.zip
 else
-	echo "Using ${CURL_VERSION}.tar.gz"
+	echo "Using ${CURL_VERSION}.zip"
 fi
 
+rm -rf "${CURL_VERSION}"
 echo "Unpacking curl"
-tar xfz "${CURL_VERSION}.tar.gz"
+unzip -qq "${CURL_VERSION}.zip"
+mv curl-master "$CURL_VERSION"
 
 echo -e "${bold}Building Mac libraries${dim}"
 buildMac "x86_64"
