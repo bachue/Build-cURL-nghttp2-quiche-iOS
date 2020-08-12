@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script downlaods and builds the Mac, iOS and tvOS ngtcp2 libraries
+# This script downloads and builds the Mac, iOS and tvOS ngtcp2 libraries
 #
 # Credits:
 # Bachue Zhou, @bachue

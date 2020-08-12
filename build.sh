@@ -117,15 +117,6 @@ else
 	cd ..
 fi
 
-## Ngtcp2 Build
-if [ -n "$buildngtcp2" ]; then
-	echo
-	echo -e "${bold}Building ngtcp2 for HTTP3 support${normal}"
-	cd ngtcp2
-	./ngtcp2-build.sh $colorflag
-	cd ..
-fi
-
 ## Nghttp3 Build
 if [ -n "$buildnghttp3" ]; then
 	echo

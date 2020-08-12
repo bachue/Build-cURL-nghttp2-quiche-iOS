@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script downlaods and builds the Mac, iOS and tvOS nghttp3 libraries
+# This script downloads and builds the Mac, iOS and tvOS nghttp3 libraries
 #
 # Credits:
 # Bachue Zhou, @bachue
@@ -245,8 +245,7 @@ rm -rf "/tmp/nghttp3-*.log"
 rm -rf "nghttp3"
 
 echo "Cloning nghttp3"
-git clone https://github.com/ngtcp2/nghttp3.git
-echo "TODO: Support selecting official version"
+git clone --depth 1 https://github.com/ngtcp2/nghttp3.git
 
 echo -e "${bold}Building Mac libraries${dim}"
 buildMac "x86_64"

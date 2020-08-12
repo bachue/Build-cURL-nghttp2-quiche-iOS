@@ -1,18 +1,18 @@
 #!/bin/bash
-# This script downlaods and builds the Mac, iOS and tvOS nghttp2 libraries 
+# This script downloads and builds the Mac, iOS and tvOS nghttp2 libraries
 #
 # Credits:
 # Jason Cox, @jasonacox
-#   https://github.com/jasonacox/Build-OpenSSL-cURL 
+#   https://github.com/jasonacox/Build-OpenSSL-cURL
 #
 # NGHTTP2 - https://github.com/nghttp2/nghttp2
 #
 
-# > nghttp2 is an implementation of HTTP/2 and its header 
+# > nghttp2 is an implementation of HTTP/2 and its header
 # > compression algorithm HPACK in C
-# 
+#
 # NOTE: pkg-config is required
- 
+
 set -e
 
 # Formatting
@@ -33,7 +33,7 @@ alertdim="\033[0m${red}\033[2m"
 # set trap to help debug build errors
 trap 'echo -e "${alert}** ERROR with Build - Check /tmp/nghttp2*.log${alertdim}"; tail -3 /tmp/nghttp2*.log' INT TERM EXIT
 
-NGHTTP2_VERNUM="1.40.0"
+NGHTTP2_VERNUM="1.41.0"
 IOS_MIN_SDK_VERSION="7.1"
 IOS_SDK_VERSION=""
 TVOS_MIN_SDK_VERSION="9.0"
@@ -44,29 +44,29 @@ usage ()
 	echo
 	echo -e "${bold}Usage:${normal}"
 	echo
-    echo -e "  ${subbold}$0${normal} [-v ${dim}<nghttp2 version>${normal}] [-s ${dim}<iOS SDK version>${normal}] [-t ${dim}<tvOS SDK version>${normal}] [-x] [-h]"
-    echo
+	echo -e "  ${subbold}$0${normal} [-v ${dim}<nghttp2 version>${normal}] [-s ${dim}<iOS SDK version>${normal}] [-t ${dim}<tvOS SDK version>${normal}] [-x] [-h]"
+	echo
 	echo "         -v   version of nghttp2 (default $NGHTTP2_VERNUM)"
 	echo "         -s   iOS SDK version (default $IOS_MIN_SDK_VERSION)"
 	echo "         -t   tvOS SDK version (default $TVOS_MIN_SDK_VERSION)"
 	echo "         -x   disable color output"
-	echo "         -h   show usage"	
+	echo "         -h   show usage"
 	echo
 	trap - INT TERM EXIT
 	exit 127
 }
 
 while getopts "v:s:t:xh\?" o; do
-    case "${o}" in
-        v)
-	    	NGHTTP2_VERNUM="${OPTARG}"
-            ;;
-        s)
-            IOS_SDK_VERSION="${OPTARG}"
-            ;;
-        t)
-	    	TVOS_SDK_VERSION="${OPTARG}"
-            ;;
+	case "${o}" in
+		v)
+			NGHTTP2_VERNUM="${OPTARG}"
+			;;
+		s)
+			IOS_SDK_VERSION="${OPTARG}"
+			;;
+		t)
+			TVOS_SDK_VERSION="${OPTARG}"
+			;;
 		x)
 			bold=""
 			subbold=""
@@ -76,10 +76,10 @@ while getopts "v:s:t:xh\?" o; do
 			alertdim=""
 			archbold=""
 			;;
-        *)
-            usage
-            ;;
-    esac
+		*)
+			usage
+			;;
+	esac
 done
 shift $((OPTIND-1))
 
@@ -112,12 +112,12 @@ else
 		echo -e "${alert}** FATAL ERROR: pkg-config failed to install - exiting.${normal}"
 		exit
 	fi
-fi 
+fi
 
 buildMac()
 {
 	ARCH=$1
-        HOST="i386-apple-darwin"
+	HOST="i386-apple-darwin"
 
 	echo -e "${subbold}Building ${NGHTTP2_VERSION} for ${archbold}${ARCH}${dim}"
 
@@ -128,8 +128,8 @@ buildMac()
 	fi
 
 	export CC="${BUILD_TOOLS}/usr/bin/clang -fembed-bitcode"
-        export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -fembed-bitcode"
-        export LDFLAGS="-arch ${ARCH}"
+	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -fembed-bitcode"
+	export LDFLAGS="-arch ${ARCH}"
 
 	pushd . > /dev/null
 	cd "${NGHTTP2_VERSION}"
@@ -147,19 +147,19 @@ buildIOS()
 
 	pushd . > /dev/null
 	cd "${NGHTTP2_VERSION}"
-  
+
 	if [[ "${ARCH}" == "i386" || "${ARCH}" == "x86_64" ]]; then
 		PLATFORM="iPhoneSimulator"
 	else
 		PLATFORM="iPhoneOS"
 	fi
 
-        if [[ "${BITCODE}" == "nobitcode" ]]; then
-                CC_BITCODE_FLAG=""
-        else
-                CC_BITCODE_FLAG="-fembed-bitcode"
-        fi
-  
+		if [[ "${BITCODE}" == "nobitcode" ]]; then
+				CC_BITCODE_FLAG=""
+		else
+				CC_BITCODE_FLAG="-fembed-bitcode"
+		fi
+
 	export $PLATFORM
 	export CROSS_TOP="${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer"
 	export CROSS_SDK="${PLATFORM}${IOS_SDK_VERSION}.sdk"
@@ -167,18 +167,18 @@ buildIOS()
 	export CC="${BUILD_TOOLS}/usr/bin/gcc"
 	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -miphoneos-version-min=${IOS_MIN_SDK_VERSION} ${CC_BITCODE_FLAG}"
 	export LDFLAGS="-arch ${ARCH} -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK}"
-   
-	echo -e "${subbold}Building ${NGHTTP2_VERSION} for ${PLATFORM} ${IOS_SDK_VERSION} ${archbold}${ARCH}${dim}"
-        if [[ "${ARCH}" == "arm64" || "${ARCH}" == "arm64e"  ]]; then
-		./configure --disable-shared --disable-app --disable-threads --enable-lib-only  --prefix="${NGHTTP2}/iOS/${ARCH}" --host="arm-apple-darwin" &> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log"
-        else
-		./configure --disable-shared --disable-app --disable-threads --enable-lib-only --prefix="${NGHTTP2}/iOS/${ARCH}" --host="${ARCH}-apple-darwin" &> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log"
-        fi
 
-        make -j8 >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
-        make install >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
-        make clean >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
-        popd > /dev/null
+	echo -e "${subbold}Building ${NGHTTP2_VERSION} for ${PLATFORM} ${IOS_SDK_VERSION} ${archbold}${ARCH}${dim}"
+		if [[ "${ARCH}" == "arm64" || "${ARCH}" == "arm64e"  ]]; then
+		./configure --disable-shared --disable-app --disable-threads --enable-lib-only  --prefix="${NGHTTP2}/iOS/${ARCH}" --host="arm-apple-darwin" &> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log"
+		else
+		./configure --disable-shared --disable-app --disable-threads --enable-lib-only --prefix="${NGHTTP2}/iOS/${ARCH}" --host="${ARCH}-apple-darwin" &> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log"
+		fi
+
+		make -j8 >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
+		make install >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
+		make clean >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
+		popd > /dev/null
 }
 
 buildTVOS()
@@ -187,7 +187,7 @@ buildTVOS()
 
 	pushd . > /dev/null
 	cd "${NGHTTP2_VERSION}"
-  
+
 	if [[ "${ARCH}" == "i386" || "${ARCH}" == "x86_64" ]]; then
 		PLATFORM="AppleTVSimulator"
 	else
@@ -202,7 +202,7 @@ buildTVOS()
 	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -mtvos-version-min=${TVOS_MIN_SDK_VERSION} -fembed-bitcode"
 	export LDFLAGS="-arch ${ARCH} -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -L${OPENSSL}/tvOS/lib ${NGHTTP2LIB}"
 	export LC_CTYPE=C
-  
+
 	echo -e "${subbold}Building ${NGHTTP2_VERSION} for ${PLATFORM} ${TVOS_SDK_VERSION} ${archbold}${ARCH}${dim}"
 
 	# Patch apps/speed.c to not use fork() since it's not available on tvOS
@@ -211,7 +211,7 @@ buildTVOS()
 	# Patch Configure to build for tvOS, not iOS
 	# LANG=C sed -i -- 's/D\_REENTRANT\:iOS/D\_REENTRANT\:tvOS/' "./Configure"
 	# chmod u+x ./Configure
-	
+
 	./configure --disable-shared --disable-app --disable-threads --enable-lib-only  --prefix="${NGHTTP2}/tvOS/${ARCH}" --host="arm-apple-darwin" &> "/tmp/${CURL_VERSION}-tvOS-${ARCH}.log"
 	LANG=C sed -i -- 's/define HAVE_FORK 1/define HAVE_FORK 0/' "config.h"
 
@@ -252,8 +252,8 @@ echo -e "${bold}Building Mac libraries${dim}"
 buildMac "x86_64"
 
 lipo \
-        "${NGHTTP2}/Mac/x86_64/lib/libnghttp2.a" \
-        -create -output "${NGHTTP2}/lib/libnghttp2_Mac.a"
+		"${NGHTTP2}/Mac/x86_64/lib/libnghttp2.a" \
+		-create -output "${NGHTTP2}/lib/libnghttp2_Mac.a"
 
 echo -e "${bold}Building iOS libraries (bitcode)${dim}"
 buildIOS "armv7" "bitcode"
@@ -277,9 +277,9 @@ buildTVOS "arm64"
 buildTVOS "x86_64"
 
 lipo \
-        "${NGHTTP2}/tvOS/arm64/lib/libnghttp2.a" \
-        "${NGHTTP2}/tvOS/x86_64/lib/libnghttp2.a" \
-        -create -output "${NGHTTP2}/lib/libnghttp2_tvOS.a"
+		"${NGHTTP2}/tvOS/arm64/lib/libnghttp2.a" \
+		"${NGHTTP2}/tvOS/x86_64/lib/libnghttp2.a" \
+		-create -output "${NGHTTP2}/lib/libnghttp2_tvOS.a"
 
 echo -e "${bold}Cleaning up${dim}"
 rm -rf /tmp/${NGHTTP2_VERSION}-*

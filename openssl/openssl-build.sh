@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script downlaods and builds the Mac, iOS and tvOS openSSL libraries with Bitcode enabled
+# This script downloads and builds the Mac, iOS and tvOS openSSL libraries with Bitcode enabled
 
 # Credits:
 #
