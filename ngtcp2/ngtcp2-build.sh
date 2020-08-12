@@ -76,53 +76,37 @@ DEVELOPER=`xcode-select -print-path`
 
 NGTCP2="${PWD}/../ngtcp2"
 
-# Check to see if autoconf is already installed
-if (type "autoreconf" > /dev/null) ; then
-    echo "  autoconf already installed"
-else
-    echo -e "${alertdim}** WARNING: autoconf not installed... attempting to install.${dim}"
+checkTool()
+{
+    TOOL=$1
+    PKG=$2
 
-    # Check to see if Brew is installed
-    if ! type "brew" > /dev/null; then
-        echo -e "${alert}** FATAL ERROR: brew not installed - unable to install autoconf - exiting.${normal}"
-        exit
+    if (type "$1" > /dev/null) ; then
+        echo "  $2 already installed"
     else
-        echo "  brew installed - using to install autoconf"
-        brew install autoconf
-    fi
+        echo -e "${alertdim}** WARNING: $2 not installed... attempting to install.${dim}"
 
-    # Check to see if installation worked
-    if (type "autoreconf" > /dev/null) ; then
-        echo "  SUCCESS: autoconf installed"
-    else
-        echo -e "${alert}** FATAL ERROR: autoconf failed to install - exiting.${normal}"
-        exit
-    fi
-fi
+        # Check to see if Brew is installed
+        if ! type "brew" > /dev/null; then
+            echo -e "${alert}** FATAL ERROR: brew not installed - unable to install $2 - exiting.${normal}"
+            exit
+        else
+            echo "  brew installed - using to install $2"
+            brew install "$2"
+        fi
 
-# Check to see if git is already installed
-if (type "git" > /dev/null) ; then
-    echo "  git already installed"
-else
-    echo -e "${alertdim}** WARNING: git not installed... attempting to install.${dim}"
-
-    # Check to see if Brew is installed
-    if ! type "brew" > /dev/null; then
-        echo -e "${alert}** FATAL ERROR: brew not installed - unable to install git - exiting.${normal}"
-        exit
-    else
-        echo "  brew installed - using to install git"
-        brew install git
+        # Check to see if installation worked
+        if (type "$1" > /dev/null) ; then
+            echo "  SUCCESS: $2 installed"
+        else
+            echo -e "${alert}** FATAL ERROR: $2 failed to install - exiting.${normal}"
+            exit
+        fi
     fi
+}
 
-    # Check to see if installation worked
-    if (type "git" > /dev/null) ; then
-        echo "  SUCCESS: git installed"
-    else
-        echo -e "${alert}** FATAL ERROR: git failed to install - exiting.${normal}"
-        exit
-    fi
-fi
+checkTool autoreconf autoconf
+checkTool git git
 
 buildMac()
 {

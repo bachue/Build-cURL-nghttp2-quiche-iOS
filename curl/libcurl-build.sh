@@ -40,20 +40,22 @@ TVOS_SDK_VERSION=""
 TVOS_MIN_SDK_VERSION="9.0"
 IPHONEOS_DEPLOYMENT_TARGET="6.0"
 nohttp2="0"
+nohttp3="0"
 
 usage ()
 {
 	echo
 	echo -e "${bold}Usage:${normal}"
 	echo
-	echo -e "  ${subbold}$0${normal} [-v ${dim}<curl version>${normal}] [-s ${dim}<iOS SDK version>${normal}] [-t ${dim}<tvOS SDK version>${normal}] [-i ${dim}<iPhone target version>${normal}] [-b] [-x] [-n] [-h]"
+	echo -e "  ${subbold}$0${normal} [-v ${dim}<curl version>${normal}] [-s ${dim}<iOS SDK version>${normal}] [-t ${dim}<tvOS SDK version>${normal}] [-i ${dim}<iPhone target version>${normal}] [-b] [-x] [-2] [-3] [-h]"
     echo
 	echo "         -v   version of curl (default $CURL_VERSION)"
 	echo "         -s   iOS SDK version (default $IOS_MIN_SDK_VERSION)"
 	echo "         -t   tvOS SDK version (default $TVOS_MIN_SDK_VERSION)"
 	echo "         -i   iPhone target version (default $IPHONEOS_DEPLOYMENT_TARGET)"
 	echo "         -b   compile without bitcode"
-	echo "         -n   compile with nghttp2"
+	echo "         -2   compile with nghttp2"
+	echo "         -3   compile with nghttp3"
 	echo "         -x   disable color output"
 	echo "         -h   show usage"
 	echo
@@ -75,8 +77,11 @@ while getopts "v:s:t:i:nbxh\?" o; do
         i)
 	    	IPHONEOS_DEPLOYMENT_TARGET="${OPTARG}"
             ;;
-		n)
+		2)
 			nohttp2="1"
+			;;
+		3)
+			nohttp3="1"
 			;;
 		b)
 			NOBITCODE="yes"
@@ -101,11 +106,7 @@ DEVELOPER=`xcode-select -print-path`
 
 # HTTP2 support
 if [ $nohttp2 == "1" ]; then
-	# nghttp2 will be in ../nghttp2/{Platform}/{arch}
 	NGHTTP2="${PWD}/../nghttp2"
-fi
-
-if [ $nohttp2 == "1" ]; then
 	echo "Building with HTTP2 Support (nghttp2)"
 else
 	echo "Building without HTTP2 Support (nghttp2)"
@@ -113,8 +114,18 @@ else
 	NGHTTP2LIB=""
 fi
 
-NGHTTP3="${PWD}/../nghttp3"
-NGTCP2="${PWD}/../ngtcp2"
+# HTTP3 support
+if [ $nohttp3 == "1" ]; then
+	NGHTTP3="${PWD}/../nghttp3"
+	NGTCP2="${PWD}/../ngtcp2"
+	echo "Building with HTTP3 Support (ngtcp2)"
+else
+	echo "Building without HTTP3 Support (ngtcp2)"
+	NGHTTP3CFG=""
+	NGHTTP3LIB=""
+	NGTCP2CFG=""
+	NGTCP2LIB=""
+fi
 
 buildMac()
 {
@@ -133,11 +144,12 @@ buildMac()
 		NGHTTP2CFG="--with-nghttp2=${NGHTTP2}/Mac/${ARCH}"
 		NGHTTP2LIB="-L${NGHTTP2}/Mac/${ARCH}/lib"
 	fi
-	NGHTTP3CFG="--with-nghttp3=${NGHTTP3}/Mac/${ARCH}"
-	NGHTTP3LIB="-L${NGHTTP3}/Mac/${ARCH}/lib"
-
-	NGTCP2CFG="--with-ngtcp2=${NGTCP2}/Mac/${ARCH}"
-	NGTCP2LIB="-L${NGTCP2}/Mac/${ARCH}/lib"
+	if [ $nohttp3 == "1" ]; then
+		NGHTTP3CFG="--with-nghttp3=${NGHTTP3}/Mac/${ARCH}"
+		NGHTTP3LIB="-L${NGHTTP3}/Mac/${ARCH}/lib"
+		NGTCP2CFG="--with-ngtcp2=${NGTCP2}/Mac/${ARCH}"
+		NGTCP2LIB="-L${NGTCP2}/Mac/${ARCH}/lib"
+	fi
 
 	export CC="${BUILD_TOOLS}/usr/bin/clang"
 	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -fembed-bitcode"
@@ -179,11 +191,12 @@ buildIOS()
 		NGHTTP2CFG="--with-nghttp2=${NGHTTP2}/iOS/${ARCH}"
 		NGHTTP2LIB="-L${NGHTTP2}/iOS/${ARCH}/lib"
 	fi
-	NGHTTP3CFG="--with-nghttp3=${NGHTTP3}/iOS/${ARCH}"
-	NGHTTP3LIB="-L${NGHTTP3}/iOS/${ARCH}/lib"
-
-	NGTCP2CFG="--with-ngtcp2=${NGTCP2}/iOS/${ARCH}"
-	NGTCP2LIB="-L${NGTCP2}/iOS/${ARCH}/lib"
+	if [ $nohttp3 == "1" ]; then
+		NGHTTP3CFG="--with-nghttp3=${NGHTTP3}/iOS/${ARCH}"
+		NGHTTP3LIB="-L${NGHTTP3}/iOS/${ARCH}/lib"
+		NGTCP2CFG="--with-ngtcp2=${NGTCP2}/iOS/${ARCH}"
+		NGTCP2LIB="-L${NGTCP2}/iOS/${ARCH}/lib"
+	fi
 
 	export $PLATFORM
 	export CROSS_TOP="${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer"
@@ -225,11 +238,12 @@ buildTVOS()
 		NGHTTP2CFG="--with-nghttp2=${NGHTTP2}/tvOS/${ARCH}"
 		NGHTTP2LIB="-L${NGHTTP2}/tvOS/${ARCH}/lib"
 	fi
-	NGHTTP3CFG="--with-nghttp3=${NGHTTP3}/tvOS/${ARCH}"
-	NGHTTP3LIB="-L${NGHTTP3}/tvOS/${ARCH}/lib"
-
-	NGTCP2CFG="--with-ngtcp2=${NGTCP2}/tvOS/${ARCH}"
-	NGTCP2LIB="-L${NGTCP2}/tvOS/${ARCH}/lib"
+	if [ $nohttp3 == "1" ]; then
+		NGHTTP3CFG="--with-nghttp3=${NGHTTP3}/tvOS/${ARCH}"
+		NGHTTP3LIB="-L${NGHTTP3}/tvOS/${ARCH}/lib"
+		NGTCP2CFG="--with-ngtcp2=${NGTCP2}/tvOS/${ARCH}"
+		NGTCP2LIB="-L${NGTCP2}/tvOS/${ARCH}/lib"
+	fi
 
 	export $PLATFORM
 	export CROSS_TOP="${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer"

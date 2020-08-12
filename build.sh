@@ -20,9 +20,8 @@ NGHTTP2="1.41.0"	# https://nghttp2.org/
 
 # Global flags
 engine=""
-buildnghttp2="-n"
-buildngtcp2="-n"
-buildnghttp3="-n"
+buildnghttp2="-2"
+buildngtcp2="-3"
 disablebitcode=""
 colorflag=""
 
@@ -45,11 +44,12 @@ usage ()
     echo
 	echo -e "${bold}Usage:${normal}"
 	echo
-	echo -e "  ${subbold}$0${normal} [-c ${dim}<curl version>${normal}] [-n ${dim}<nghttp2 version>${normal}] [-d] [-e] [-x] [-h]"
+	echo -e "  ${subbold}$0${normal} [-c ${dim}<curl version>${normal}] [-n ${dim}<nghttp2 version>${normal}] [-d] [-f] [-e] [-x] [-h]"
 	echo
 	echo "         -c <version>   Build curl version (default $LIBCURL)"
 	echo "         -n <version>   Build nghttp2 version (default $NGHTTP2)"
 	echo "         -d             Compile without HTTP2 support"
+	echo "         -f             Compile without HTTP3 support"
 	echo "         -e             Compile with OpenSSL engine support"
 	echo "         -b             Compile without bitcode"
 	echo "         -x             No color output"
@@ -58,7 +58,7 @@ usage ()
     exit 127
 }
 
-while getopts "o:c:n:dexh\?" o; do
+while getopts "o:c:n:dfexh\?" o; do
     case "${o}" in
 		c)
 			LIBCURL="${OPTARG}"
@@ -68,6 +68,9 @@ while getopts "o:c:n:dexh\?" o; do
 			;;
 		d)
 			buildnghttp2=""
+			;;
+		f)
+			buildngtcp2=""
 			;;
 		e)
 			engine="-e"
@@ -118,7 +121,7 @@ else
 fi
 
 ## Nghttp3 Build
-if [ -n "$buildnghttp3" ]; then
+if [ -n "$buildngtcp2" ]; then
 	echo
 	echo -e "${bold}Building nghttp3 for HTTP3 support${normal}"
 	cd nghttp3
@@ -139,7 +142,7 @@ fi
 echo
 echo -e "${bold}Building Curl${normal}"
 cd curl
-./libcurl-build.sh -v "$LIBCURL" $disablebitcode $colorflag $buildnghttp2
+./libcurl-build.sh -v "$LIBCURL" $disablebitcode $colorflag $buildnghttp2 $buildngtcp2
 cd ..
 
 echo
