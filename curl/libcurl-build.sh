@@ -33,7 +33,7 @@ alertdim="\033[0m${red}\033[2m"
 # set trap to help debug any build errors
 trap 'echo -e "${alert}** ERROR with Build - Check /tmp/curl*.log${alertdim}"; tail -3 /tmp/curl*.log' INT TERM EXIT
 
-CURL_VERSION="curl-7.71.1"
+CURL_VERSION="curl-7.72.0"
 IOS_SDK_VERSION=""
 IOS_MIN_SDK_VERSION="7.1"
 TVOS_SDK_VERSION=""
@@ -159,7 +159,6 @@ checkTool()
 checkTool autoreconf autoconf
 checkTool aclocal automake
 checkTool libtool libtool
-checkTool git git
 
 buildMac()
 {
@@ -314,18 +313,16 @@ rm -rf "/tmp/${CURL_VERSION}-*.log"
 
 rm -rf "${CURL_VERSION}"
 
-if [ ! -e ${CURL_VERSION}.zip ]; then
-	echo "Downloading ${CURL_VERSION}.zip"
-	# curl -LO https://curl.haxx.se/download/${CURL_VERSION}.tar.gz
-    wget -O ${CURL_VERSION}.zip https://github.com/curl/curl/archive/master.zip
+if [ ! -f ${CURL_VERSION}.tar.gz ]; then
+	echo "Downloading ${CURL_VERSION}.tar.gz"
+	curl -LO https://curl.haxx.se/download/${CURL_VERSION}.tar.gz
 else
-	echo "Using ${CURL_VERSION}.zip"
+	echo "Using ${CURL_VERSION}.tar.gz"
 fi
 
 rm -rf "${CURL_VERSION}"
 echo "Unpacking curl"
-unzip -qq "${CURL_VERSION}.zip"
-mv curl-master "$CURL_VERSION"
+tar xfz "${CURL_VERSION}.tar.gz"
 
 echo -e "${bold}Building Mac libraries${dim}"
 buildMac "x86_64"
