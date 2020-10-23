@@ -1,27 +1,28 @@
 #!/bin/bash
 
-# This script builds openssl+libcurl+nghttp2+ngtcp2+nghttp3 libraries for MacOS, iOS and tvOS
+# This script builds libcurl+nghttp2+quiche libraries for MacOS, iOS
 #
 # Credits:
 # Jason Cox, @jasonacox
 #   https://github.com/jasonacox/Build-OpenSSL-cURL
 # Bachue Zhou, @bachue
-#   https://github.com/bachue/Build-cURL-nghttp2-nghttp3-ngtcp2
+#   https://github.com/bachue/Build-cURL-nghttp2-quiche-iOS
 #
 
 ################################################
 # EDIT this section to Select Default Versions #
 ################################################
 
-LIBCURL="7.72.0"	# https://curl.haxx.se/download.html
+LIBCURL="7.73.0"	# https://curl.haxx.se/download.html
 NGHTTP2="1.41.0"	# https://nghttp2.org/
+QUICHE="0.6.0"          # https://github.com/cloudflare/quiche.git
 
 ################################################
 
 # Global flags
 engine=""
 buildnghttp2="-2"
-buildngtcp2="-3"
+buildquiche="-q"
 disablebitcode=""
 colorflag=""
 
@@ -44,21 +45,22 @@ usage ()
     echo
 	echo -e "${bold}Usage:${normal}"
 	echo
-	echo -e "  ${subbold}$0${normal} [-c ${dim}<curl version>${normal}] [-n ${dim}<nghttp2 version>${normal}] [-d] [-f] [-e] [-x] [-h]"
+	echo -e "  ${subbold}$0${normal} [-c ${dim}<curl version>${normal}] [-n ${dim}<nghttp2 version>${normal}] [-q ${dim}<quiche version>${normal}] [-d] [-f] [-e] [-x] [-h]"
 	echo
 	echo "         -c <version>   Build curl version (default $LIBCURL)"
 	echo "         -n <version>   Build nghttp2 version (default $NGHTTP2)"
+	echo "         -q <version>   Build quiche version (default $QUICHE)"
 	echo "         -d             Compile without HTTP2 support"
-	echo "         -f             Compile without HTTP3 support"
-	echo "         -e             Compile with OpenSSL engine support"
-	echo "         -b             Compile without bitcode"
+	echo "         -f             Compile without QUICHE support"
+	echo "         -e             Compile with OpenSSL engine support" # TODO: THINK ABOUT REMOVING IT
+	echo "         -b             Compile without bitcode"             # TODO: THINK ABOUT REMOVING IT
 	echo "         -x             No color output"
 	echo "         -h             Show usage"
 	echo
     exit 127
 }
 
-while getopts "o:c:n:dfexh\?" o; do
+while getopts "c:n:q:dfebxh\?" o; do
     case "${o}" in
 		c)
 			LIBCURL="${OPTARG}"
@@ -66,11 +68,14 @@ while getopts "o:c:n:dfexh\?" o; do
 		n)
 			NGHTTP2="${OPTARG}"
 			;;
+		q)
+			QUICHE="${OPTARG}"
+			;;
 		d)
 			buildnghttp2=""
 			;;
 		f)
-			buildngtcp2=""
+			buildquiche=""
 			;;
 		e)
 			engine="-e"
@@ -95,19 +100,12 @@ done
 shift $((OPTIND-1))
 
 ## Welcome
-echo -e "${bold}Build-cURL-nghttp2-nghttp3-ngtcp2${dim}"
-echo "This script builds OpenSSL, nghttp2, ngtcp2, nghttp3 and libcurl for MacOS (OS X), iOS and tvOS devices."
+echo -e "${bold}Build-cURL-nghttp2-quiche${dim}"
+echo "This script builds nghttp2, quiche and libcurl for MacOS (OS X), iOS devices."
 echo "Targets: x86_64, armv7, armv7s, arm64 and arm64e"
 echo
 
 set -e
-
-## OpenSSL Build
-echo
-cd openssl
-echo -e "${bold}Building OpenSSL${normal}"
-./openssl-build.sh $engine $colorflag
-cd ..
 
 ## Nghttp2 Build
 if [ "$buildnghttp2" == "" ]; then
@@ -120,21 +118,12 @@ else
 	cd ..
 fi
 
-## Nghttp3 Build
-if [ -n "$buildngtcp2" ]; then
+## Quiche Build
+if [ -n "$buildquiche" ]; then
 	echo
-	echo -e "${bold}Building nghttp3 for HTTP3 support${normal}"
-	cd nghttp3
-	./nghttp3-build.sh $colorflag
-	cd ..
-fi
-
-## Ngtcp2 Build
-if [ -n "$buildngtcp2" ]; then
-	echo
-	echo -e "${bold}Building ngtcp2 for HTTP3 support${normal}"
-	cd ngtcp2
-	./ngtcp2-build.sh $colorflag
+	echo -e "${bold}Building quiche for HTTP3 support${normal}"
+	cd quiche
+	./quiche-build.sh -v "$QUICHE" $colorflag
 	cd ..
 fi
 
@@ -142,23 +131,23 @@ fi
 echo
 echo -e "${bold}Building Curl${normal}"
 cd curl
-./libcurl-build.sh -v "$LIBCURL" $disablebitcode $colorflag $buildnghttp2 $buildngtcp2
+./libcurl-build.sh -v "$LIBCURL" $disablebitcode $colorflag $buildnghttp2 $buildquiche
 cd ..
 
 echo
 echo -e "${bold}Libraries...${normal}"
 echo
-echo -e "${subbold}openssl${normal} [${dim}$OPENSSL${normal}]${dim}"
-xcrun -sdk iphoneos lipo -info openssl/*/lib/*.a
-echo
 echo -e "${subbold}nghttp2 (rename to libnghttp2.a)${normal} [${dim}$NGHTTP2${normal}]${dim}"
 xcrun -sdk iphoneos lipo -info nghttp2/lib/*.a
+echo
+echo -e "${subbold}quiche (rename to libquiche.a)${normal} [${dim}$QUICHE${normal}]${dim}"
+xcrun -sdk iphoneos lipo -info quiche/lib/*.a
 echo
 echo -e "${subbold}libcurl (rename to libcurl.a)${normal} [${dim}$LIBCURL${normal}]${dim}"
 xcrun -sdk iphoneos lipo -info curl/lib/*.a
 
 EXAMPLE="examples/iOS Test App"
-ARCHIVE="archive/libcurl-$LIBCURL-openssl-$OPENSSL-nghttp2-$NGHTTP2"
+ARCHIVE="archive/libcurl-$LIBCURL-nghttp2-$NGHTTP2-quiche-$QUICHE"
 
 echo
 echo -e "${bold}Creating archive for release v$LIBCURL...${dim}"
@@ -168,23 +157,20 @@ mkdir -p "$ARCHIVE/include/openssl"
 mkdir -p "$ARCHIVE/include/curl"
 mkdir -p "$ARCHIVE/lib/iOS"
 mkdir -p "$ARCHIVE/lib/MacOS"
-mkdir -p "$ARCHIVE/lib/tvOS"
 mkdir -p "$ARCHIVE/bin"
 # archive libraries
 cp curl/lib/libcurl_iOS.a $ARCHIVE/lib/iOS/libcurl.a
-cp curl/lib/libcurl_tvOS.a $ARCHIVE/lib/tvOS/libcurl.a
 cp curl/lib/libcurl_Mac.a $ARCHIVE/lib/MacOS/libcurl.a
-cp openssl/iOS/lib/libcrypto.a $ARCHIVE/lib/iOS/libcrypto.a
-cp openssl/tvOS/lib/libcrypto.a $ARCHIVE/lib/tvOS/libcrypto.a
-cp openssl/Mac/lib/libcrypto.a $ARCHIVE/lib/MacOS/libcrypto.a
-cp openssl/iOS/lib/libssl.a $ARCHIVE/lib/iOS/libssl.a
-cp openssl/tvOS/lib/libssl.a $ARCHIVE/lib/tvOS/libssl.a
-cp openssl/Mac/lib/libssl.a $ARCHIVE/lib/MacOS/libssl.a
+cp quiche/lib/libcrypto_iOS.a $ARCHIVE/lib/iOS/libcrypto.a
+cp quiche/lib/libcrypto_Mac.a $ARCHIVE/lib/MacOS/libcrypto.a
+cp quiche/lib/libssl_iOS.a $ARCHIVE/lib/iOS/libssl.a
+cp quiche/lib/libssl_Mac.a $ARCHIVE/lib/MacOS/libssl.a
+cp quiche/lib/libquiche_iOS.a $ARCHIVE/lib/iOS/libquiche.a
+cp quiche/lib/libquiche_Mac.a $ARCHIVE/lib/MacOS/libquiche.a
 cp nghttp2/lib/libnghttp2_iOS.a $ARCHIVE/lib/iOS/libnghttp2.a
-cp nghttp2/lib/libnghttp2_tvOS.a $ARCHIVE/lib/tvOS/libnghttp2.a
 cp nghttp2/lib/libnghttp2_Mac.a $ARCHIVE/lib/MacOS/libnghttp2.a
 # archive header files
-cp openssl/iOS/include/openssl/* "$ARCHIVE/include/openssl"
+cp quiche/quiche-${QUICHE}/deps/boringssl/src/include/openssl/* "$ARCHIVE/include/openssl"
 cp curl/include/curl/* "$ARCHIVE/include/curl"
 # archive root certs
 curl -s https://curl.haxx.se/ca/cacert.pem > $ARCHIVE/cacert.pem
@@ -192,24 +178,13 @@ sed -e "s/ZZZLIBCURL/$LIBCURL/g" -e "s/ZZZOPENSSL/$OPENSSL/g" -e "s/ZZZNGHTTP2/$
 echo
 echo -e "${bold}Copying libraries to Test App ...${dim}"
 echo "  See $EXAMPLE"
-cp openssl/iOS/lib/libcrypto.a "$EXAMPLE/libs/libcrypto.a"
-cp openssl/iOS/lib/libssl.a "$EXAMPLE/libs/libssl.a"
-cp openssl/iOS/include/openssl/* "$EXAMPLE/include/openssl/"
+cp quiche/lib/libcrypto_iOS.a "$EXAMPLE/libs/libcrypto.a"
+cp quiche/lib/libssl_iOS.a "$EXAMPLE/libs/libssl.a"
+cp quiche/quiche-${QUICHE}/deps/boringssl/src/include/openssl/* "$EXAMPLE/include/openssl/"
 cp curl/include/curl/* "$EXAMPLE/include/curl/"
 cp curl/lib/libcurl_iOS.a "$EXAMPLE/libs/libcurl.a"
 cp nghttp2/lib/libnghttp2_iOS.a "$EXAMPLE/libs/libnghttp2.a"
-cp ngtcp2/lib/libngtcp2_iOS.a "$EXAMPLE/libs/libngtcp2.a"
-cp ngtcp2/lib/libngtcp2_crypto_openssl_iOS.a "$EXAMPLE/libs/libngtcp2_crypto_openssl.a"
+cp quiche/lib/libquiche_iOS.a "$EXAMPLE/libs/libquiche.a"
 cp $ARCHIVE/cacert.pem "$EXAMPLE/cacert.pem"
 echo
-echo -e "${bold}Archiving Mac binaries for curl and openssl...${dim}"
-echo "  See $ARCHIVE/bin"
-mv /tmp/curl $ARCHIVE/bin
-mv /tmp/openssl $ARCHIVE/bin
-echo
-echo -e "${bold}Testing Mac curl binary...${dim}"
-$ARCHIVE/bin/curl -V
-echo
 echo -e "${normal}Done"
-
-rm -f $NOHTTP2
