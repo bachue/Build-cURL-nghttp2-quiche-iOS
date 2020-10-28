@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 # This script downloads and builds the Mac, iOS quiche libraries
 #
 # Credits:
