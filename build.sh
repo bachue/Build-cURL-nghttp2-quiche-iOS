@@ -15,7 +15,7 @@
 
 LIBCURL="7.73.0"	# https://curl.haxx.se/download.html
 NGHTTP2="1.41.0"	# https://nghttp2.org/
-QUICHE="0.6.0"          # https://github.com/cloudflare/quiche.git
+QUICHE="v0.6.0"          # https://github.com/cloudflare/quiche.git
 
 ################################################
 
@@ -178,6 +178,7 @@ sed -e "s/ZZZLIBCURL/$LIBCURL/g" -e "s/ZZZOPENSSL/$OPENSSL/g" -e "s/ZZZNGHTTP2/$
 echo
 echo -e "${bold}Copying libraries to Test App ...${dim}"
 echo "  See $EXAMPLE"
+mkdir -p "$EXAMPLE"/{libs,include}
 cp quiche/lib/libcrypto_iOS.a "$EXAMPLE/libs/libcrypto.a"
 cp quiche/lib/libssl_iOS.a "$EXAMPLE/libs/libssl.a"
 cp quiche/quiche-${QUICHE}/deps/boringssl/src/include/openssl/* "$EXAMPLE/include/openssl/"

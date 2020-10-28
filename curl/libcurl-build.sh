@@ -278,23 +278,36 @@ lipo \
 	-create -output lib/libcurl_Mac.a
 
 echo -e "${bold}Building iOS libraries (bitcode)${dim}"
+# aarch64-apple-ios,x86_64-apple-ios,armv7-apple-ios,armv7s-apple-ios,i386-apple-ios
+buildIOS "armv7" "bitcode" "armv7-apple-ios"
+buildIOS "armv7s" "bitcode" "armv7s-apple-ios"
 buildIOS "arm64" "bitcode" "aarch64-apple-ios"
+buildIOS "i386" "bitcode" "i386-apple-ios"
 buildIOS "x86_64" "bitcode" "x86_64-apple-ios"
 
 lipo \
+	"/tmp/${CURL_VERSION}-iOS-armv7-bitcode/lib/libcurl.a" \
+	"/tmp/${CURL_VERSION}-iOS-armv7s-bitcode/lib/libcurl.a" \
 	"/tmp/${CURL_VERSION}-iOS-arm64-bitcode/lib/libcurl.a" \
 	"/tmp/${CURL_VERSION}-iOS-x86_64-bitcode/lib/libcurl.a" \
+	"/tmp/${CURL_VERSION}-iOS-i386-bitcode/lib/libcurl.a" \
 	-create -output lib/libcurl_iOS.a
 
 
 if [[ "${NOBITCODE}" == "yes" ]]; then
 	echo -e "${bold}Building iOS libraries (nobitcode)${dim}"
-	buildIOS "arm64" "nobitcode"
-	buildIOS "x86_64" "nobitcode"
+        buildIOS "armv7" "nobitcode" "armv7-apple-ios"
+        buildIOS "armv7s" "nobitcode" "armv7s-apple-ios"
+        buildIOS "arm64" "nobitcode" "aarch64-apple-ios"
+        buildIOS "i386" "nobitcode" "i386-apple-ios"
+        buildIOS "x86_64" "nobitcode" "x86_64-apple-ios"
 
 	lipo \
+		"/tmp/${CURL_VERSION}-iOS-armv7-nobitcode/lib/libcurl.a" \
+		"/tmp/${CURL_VERSION}-iOS-armv7s-nobitcode/lib/libcurl.a" \
 		"/tmp/${CURL_VERSION}-iOS-arm64-nobitcode/lib/libcurl.a" \
 		"/tmp/${CURL_VERSION}-iOS-x86_64-nobitcode/lib/libcurl.a" \
+		"/tmp/${CURL_VERSION}-iOS-i386-nobitcode/lib/libcurl.a" \
 		-create -output lib/libcurl_iOS_nobitcode.a
 
 fi

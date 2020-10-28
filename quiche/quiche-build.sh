@@ -30,7 +30,7 @@ alertdim="\033[0m${red}\033[2m"
 # set trap to help debug build errors
 trap 'echo -e "${alert}** ERROR with Build - Check /tmp/quiche*.log${alertdim}"; tail -3 /tmp/quiche*.log' INT TERM EXIT
 
-QUICHE_VERNUM="0.6.0"
+QUICHE_VERNUM="v0.6.0"
 IOS_MIN_SDK_VERSION="7.1"
 IOS_SDK_VERSION=""
 
@@ -115,11 +115,13 @@ checkTool git git
 checkTool cmake cmake
 
 checkRust() {
+    DEFAULT_TOOLCHAIN="nightly-2020-10-25"
+
     if (type "rustup" > /dev/null); then
         echo "  rustup already installed"
     else
         echo -e "${alertdim}** WARNING: rustup not installed... attempting to install.${dim}"
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain $DEFAULT_TOOLCHAIN -y
         source $HOME/.cargo/env
         if (type "rustup" > /dev/null); then
             echo "  SUCCESS: rustup installed"
@@ -128,21 +130,22 @@ checkRust() {
             exit
         fi
     fi
-    rustup target add aarch64-apple-ios x86_64-apple-darwin x86_64-apple-ios
+    rustup default $DEFAULT_TOOLCHAIN
+    rustup component add rust-src
     cargo install cargo-lipo -q
 }
 checkRust
 
 build()
 {
-	ARCH=$1
-	TARGETS=$2
+	TARGET=$1
 
-	echo -e "${subbold}Building ${QUICHE_VERSION} for ${archbold}${ARCH}${dim}"
+	echo -e "${subbold}Building ${QUICHE_VERSION} for ${archbold}${TARGET}${dim}"
 
 	pushd . > /dev/null
 	cd "${QUICHE_VERSION}"
-	cargo lipo -v --targets "$TARGETS" --release --features "pkg-config-meta,qlog" &> "/tmp/${QUICHE_VERSION}-${ARCH}.log" 
+	# cargo lipo -v --targets "$TARGETS" --release --features "pkg-config-meta,qlog" &> "/tmp/${QUICHE_VERSION}-${TARGET}.log" 
+        cargo build -Z build-std --target "$TARGET" --release --features pkg-config-meta,qlog
 	popd > /dev/null
 }
 
@@ -156,7 +159,7 @@ rm -rf "/tmp/${QUICHE_VERSION}-*.log"
 
 if [ ! -e "${QUICHE_VERSION}" ]; then
     echo "Cloning quiche"
-    git clone -b "$QUICHE_VERNUM" --recursive https://github.com/cloudflare/quiche.git "${QUICHE_VERSION}"
+    git clone -b "$QUICHE_VERNUM" --recursive https://github.com/bachue/quiche.git "${QUICHE_VERSION}"
 else
     echo "Using quiche"
     (
@@ -167,33 +170,33 @@ else
     )
 fi
 
-mkdir -p lib Mac/x86_64-apple-darwin iOS/{aarch64-apple-ios,x86_64-apple-ios}
+mkdir -p lib Mac/x86_64-apple-darwin iOS/{aarch64-apple-ios,x86_64-apple-ios,armv7-apple-ios,armv7s-apple-ios,i386-apple-ios}
 
 echo -e "${bold}Building Mac libraries${dim}"
-build "apple-darwin" "x86_64-apple-darwin"
-cp "${QUICHE_VERSION}/target/universal/release/libquiche.a" Mac/libquiche.a
-cp "${QUICHE_VERSION}/target/release/quiche.pc" Mac/quiche.pc
 for TARGET in x86_64-apple-darwin
 do
+    build "$TARGET"
+    ln "${QUICHE_VERSION}/target/${TARGET}/release/libquiche.a" "Mac/${TARGET}"
     cp -r "${QUICHE_VERSION}/deps/boringssl/src" "Mac/${TARGET}/openssl"
     mkdir -p "Mac/${TARGET}/openssl/lib"
     ln $(find "${QUICHE_VERSION}/target/${TARGET}/release/" -type f -name libssl.a -o -type f -name libcrypto.a) "Mac/${TARGET}/openssl/lib"
 done
-lipo Mac/libquiche.a -create -output lib/libquiche_Mac.a
+ln "${QUICHE_VERSION}/target/release/quiche.pc" Mac/quiche.pc
+lipo $(find Mac -type f -name libquiche.a) -create -output lib/libquiche_Mac.a
 lipo $(find Mac -type f -name libssl.a) -create -output lib/libssl_Mac.a
 lipo $(find Mac -type f -name libcrypto.a) -create -output lib/libcrypto_Mac.a
 
 echo -e "${bold}Building iOS libraries${dim}"
-build "apple-ios" "aarch64-apple-ios,x86_64-apple-ios"
-cp "${QUICHE_VERSION}/target/universal/release/libquiche.a" iOS/libquiche.a
-cp "${QUICHE_VERSION}/target/release/quiche.pc" iOS/quiche.pc
-for TARGET in aarch64-apple-ios x86_64-apple-ios
+for TARGET in aarch64-apple-ios x86_64-apple-ios armv7-apple-ios armv7s-apple-ios i386-apple-ios
 do
+    build "$TARGET"
+    ln "${QUICHE_VERSION}/target/${TARGET}/release/libquiche.a" "iOS/${TARGET}"
     cp -r "${QUICHE_VERSION}/deps/boringssl/src" "iOS/${TARGET}/openssl"
     mkdir -p iOS/${TARGET}/openssl/lib
     ln $(find "${QUICHE_VERSION}/target/${TARGET}/release/" -type f -name libssl.a -o -type f -name libcrypto.a) "iOS/${TARGET}/openssl/lib"
 done
-lipo iOS/libquiche.a -create -output lib/libquiche_iOS.a
+ln "${QUICHE_VERSION}/target/release/quiche.pc" iOS/quiche.pc
+lipo $(find iOS -type f -name libquiche.a) -create -output lib/libquiche_iOS.a
 lipo $(find iOS -type f -name libssl.a) -create -output lib/libssl_iOS.a
 lipo $(find iOS -type f -name libcrypto.a) -create -output lib/libcrypto_iOS.a
 
