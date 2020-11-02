@@ -37,7 +37,7 @@ trap 'echo -e "${alert}** ERROR with Build - Check /tmp/curl*.log${alertdim}"; t
 
 CURL_VERSION="curl-7.73.0"
 IOS_SDK_VERSION=""
-IOS_MIN_SDK_VERSION="7.1"
+IOS_MIN_SDK_VERSION="8.0"
 nohttp2="0"
 noquiche="0"
 
@@ -46,11 +46,10 @@ usage ()
 	echo
 	echo -e "${bold}Usage:${normal}"
 	echo
-	echo -e "  ${subbold}$0${normal} [-v ${dim}<curl version>${normal}] [-s ${dim}<iOS SDK version>${normal}] [-b] [-x] [-2] [-q] [-h]"
+	echo -e "  ${subbold}$0${normal} [-v ${dim}<curl version>${normal}] [-s ${dim}<iOS SDK version>${normal}] [-x] [-2] [-q] [-h]"
     echo
 	echo "         -v   version of curl (default $CURL_VERSION)"
 	echo "         -s   iOS SDK version (default $IOS_MIN_SDK_VERSION)"
-	echo "         -b   compile without bitcode"
 	echo "         -2   compile with nghttp2"
 	echo "         -q   compile with quiche"
 	echo "         -x   disable color output"
@@ -60,7 +59,7 @@ usage ()
 	exit 127
 }
 
-while getopts "v:s:b2qxh\?" o; do
+while getopts "v:s:2qxh\?" o; do
     case "${o}" in
         v)
 	    CURL_VERSION="curl-${OPTARG}"
@@ -73,9 +72,6 @@ while getopts "v:s:b2qxh\?" o; do
 	    ;;
 	q)
 	    noquiche="1"
-	    ;;
-	b)
-	    NOBITCODE="yes"
 	    ;;
 	x)
 	    bold=""
@@ -157,16 +153,18 @@ buildMac()
 		NGHTTP2CFG="--with-nghttp2=${NGHTTP2}/Mac/${ARCH}"
 	fi
 	if [ "$noquiche" == "1" ]; then
-		QUICHECFG="--with-quiche=${QUICHE}/Mac"
+		QUICHECFG="--with-quiche=${QUICHE}/Mac/${HOST}"
 		OPENSSLCFG="--with-ssl=${QUICHE}/Mac/${HOST}/openssl"
 	fi
 
 	export CC="${BUILD_TOOLS}/usr/bin/clang"
-	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -fembed-bitcode"
-	export LDFLAGS="-arch ${ARCH} -Wl,-rpath,${QUICHE}/Mac/${HOST}/openssl/lib"
+	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2"
+	export LDFLAGS="-arch ${ARCH} -framework Security -Wl,-rpath,${QUICHE}/Mac/${HOST}/openssl/lib"
 	export PKG_CONFIG_PATH="$(PWD)/../nghttp2/Mac/${ARCH}/lib/pkgconfig"
 	pushd . > /dev/null
 	cd "${CURL_VERSION}"
+
+	./buildconf &> "/tmp/${CURL_VERSION}-${ARCH}.log"
 	./configure --prefix="/tmp/${CURL_VERSION}-${ARCH}" \
 	    --disable-shared \
             --enable-optimize \
@@ -185,8 +183,7 @@ buildMac()
 buildIOS()
 {
 	ARCH=$1
-	BITCODE=$2
-	HOST=$3
+	HOST=$2
 
 	pushd . > /dev/null
 	cd "${CURL_VERSION}"
@@ -197,17 +194,11 @@ buildIOS()
 		PLATFORM="iPhoneOS"
 	fi
 
-	if [[ "${BITCODE}" == "nobitcode" ]]; then
-		CC_BITCODE_FLAG=""
-	else
-		CC_BITCODE_FLAG="-fembed-bitcode"
-	fi
-
 	if [ "$nohttp2" == "1" ]; then
 		NGHTTP2CFG="--with-nghttp2=${NGHTTP2}/iOS/${ARCH}"
 	fi
 	if [ "$noquiche" == "1" ]; then
-		QUICHECFG="--with-quiche=${QUICHE}/iOS"
+		QUICHECFG="--with-quiche=${QUICHE}/iOS/${HOST}"
 		OPENSSLCFG="--with-ssl=${QUICHE}/iOS/${HOST}/openssl"
 	fi
 
@@ -216,32 +207,33 @@ buildIOS()
 	export CROSS_SDK="${PLATFORM}${IOS_SDK_VERSION}.sdk"
 	export BUILD_TOOLS="${DEVELOPER}"
 	export CC="${BUILD_TOOLS}/usr/bin/gcc"
-	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -miphoneos-version-min=${IOS_MIN_SDK_VERSION} ${CC_BITCODE_FLAG}"
-	export LDFLAGS="-arch ${ARCH} -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -Wl,-rpath,${QUICHE}/iOS/${HOST}/openssl/lib"
+	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -miphoneos-version-min=${IOS_MIN_SDK_VERSION}"
+	export LDFLAGS="-arch ${ARCH} -framework Security -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -Wl,-rpath,${QUICHE}/iOS/${HOST}/openssl/lib"
 
-	echo -e "${subbold}Building ${CURL_VERSION} for ${PLATFORM} ${IOS_SDK_VERSION} ${archbold}${ARCH}${dim} ${BITCODE}"
+	echo -e "${subbold}Building ${CURL_VERSION} for ${PLATFORM} ${IOS_SDK_VERSION} ${archbold}${ARCH}${dim}"
 
+	./buildconf &> "/tmp/${CURL_VERSION}-${ARCH}.log"
 	if [[ "${ARCH}" == *"arm64"* || "${ARCH}" == "arm64e" ]]; then
 		./configure \
-		    --prefix="/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}" \
+		    --prefix="/tmp/${CURL_VERSION}-iOS-${ARCH}" \
                     --disable-shared \
                     --enable-static \
                     --with-random=/dev/urandom \
                     --with-ssl="${QUICHE}/iOS/${HOST}/openssl/" \
-		    ${NGHTTP2CFG} ${OPENSSLCFG} ${QUICHECFG} --host="arm-apple-darwin" &> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log"
+		    ${NGHTTP2CFG} ${OPENSSLCFG} ${QUICHECFG} --host="arm-apple-darwin" &> "/tmp/${CURL_VERSION}-iOS-${ARCH}.log"
 	else
 		./configure \
-		    --prefix="/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}" \
+		    --prefix="/tmp/${CURL_VERSION}-iOS-${ARCH}" \
                     --disable-shared \
                     --enable-static \
                     --with-random=/dev/urandom \
                     --with-ssl="${QUICHE}/iOS/${HOST}/openssl/" \
-                    ${NGHTTP2CFG} ${OPENSSLCFG} ${QUICHECFG} --host="${ARCH}-apple-darwin" &> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log"
+                    ${NGHTTP2CFG} ${OPENSSLCFG} ${QUICHECFG} --host="${ARCH}-apple-darwin" &> "/tmp/${CURL_VERSION}-iOS-${ARCH}.log"
 	fi
 
-	make -j8 >> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
-	make install -j8 >> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
-	make clean >> "/tmp/${CURL_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
+	make -j8 >> "/tmp/${CURL_VERSION}-iOS-${ARCH}.log" 2>&1
+	make install -j8 >> "/tmp/${CURL_VERSION}-iOS-${ARCH}.log" 2>&1
+	make clean >> "/tmp/${CURL_VERSION}-iOS-${ARCH}.log" 2>&1
 	popd > /dev/null
 }
 
@@ -258,7 +250,7 @@ rm -rf "${CURL_VERSION}"
 
 if [ ! -f ${CURL_VERSION}.tar.gz ]; then
 	echo "Downloading ${CURL_VERSION}.tar.gz"
-	curl -LO https://curl.haxx.se/download/${CURL_VERSION}.tar.gz
+	curl -LO http://mirrors.qiniu-solutions.com/${CURL_VERSION}.tar.gz
 else
 	echo "Using ${CURL_VERSION}.tar.gz"
 fi
@@ -277,40 +269,26 @@ lipo \
 	"/tmp/${CURL_VERSION}-x86_64/lib/libcurl.a" \
 	-create -output lib/libcurl_Mac.a
 
-echo -e "${bold}Building iOS libraries (bitcode)${dim}"
-# aarch64-apple-ios,x86_64-apple-ios,armv7-apple-ios,armv7s-apple-ios,i386-apple-ios
-buildIOS "armv7" "bitcode" "armv7-apple-ios"
-buildIOS "armv7s" "bitcode" "armv7s-apple-ios"
-buildIOS "arm64" "bitcode" "aarch64-apple-ios"
-buildIOS "i386" "bitcode" "i386-apple-ios"
-buildIOS "x86_64" "bitcode" "x86_64-apple-ios"
+echo -e "${bold}Building iOS libraries${dim}"
+buildIOS "x86_64" "x86_64-apple-ios"
+# buildIOS "i386" "i386-apple-ios"
+buildIOS "armv7" "armv7-apple-ios"
+buildIOS "armv7s" "armv7s-apple-ios"
+buildIOS "arm64" "aarch64-apple-ios"
 
+# lipo \
+#	"/tmp/${CURL_VERSION}-iOS-x86_64/lib/libcurl.a" \
+#	"/tmp/${CURL_VERSION}-iOS-i386/lib/libcurl.a" \
+#	"/tmp/${CURL_VERSION}-iOS-armv7/lib/libcurl.a" \
+#	"/tmp/${CURL_VERSION}-iOS-armv7s/lib/libcurl.a" \
+#	"/tmp/${CURL_VERSION}-iOS-arm64/lib/libcurl.a" \
+#	-create -output lib/libcurl_iOS.a
 lipo \
-	"/tmp/${CURL_VERSION}-iOS-armv7-bitcode/lib/libcurl.a" \
-	"/tmp/${CURL_VERSION}-iOS-armv7s-bitcode/lib/libcurl.a" \
-	"/tmp/${CURL_VERSION}-iOS-arm64-bitcode/lib/libcurl.a" \
-	"/tmp/${CURL_VERSION}-iOS-x86_64-bitcode/lib/libcurl.a" \
-	"/tmp/${CURL_VERSION}-iOS-i386-bitcode/lib/libcurl.a" \
+	"/tmp/${CURL_VERSION}-iOS-x86_64/lib/libcurl.a" \
+	"/tmp/${CURL_VERSION}-iOS-armv7/lib/libcurl.a" \
+	"/tmp/${CURL_VERSION}-iOS-armv7s/lib/libcurl.a" \
+	"/tmp/${CURL_VERSION}-iOS-arm64/lib/libcurl.a" \
 	-create -output lib/libcurl_iOS.a
-
-
-if [[ "${NOBITCODE}" == "yes" ]]; then
-	echo -e "${bold}Building iOS libraries (nobitcode)${dim}"
-        buildIOS "armv7" "nobitcode" "armv7-apple-ios"
-        buildIOS "armv7s" "nobitcode" "armv7s-apple-ios"
-        buildIOS "arm64" "nobitcode" "aarch64-apple-ios"
-        buildIOS "i386" "nobitcode" "i386-apple-ios"
-        buildIOS "x86_64" "nobitcode" "x86_64-apple-ios"
-
-	lipo \
-		"/tmp/${CURL_VERSION}-iOS-armv7-nobitcode/lib/libcurl.a" \
-		"/tmp/${CURL_VERSION}-iOS-armv7s-nobitcode/lib/libcurl.a" \
-		"/tmp/${CURL_VERSION}-iOS-arm64-nobitcode/lib/libcurl.a" \
-		"/tmp/${CURL_VERSION}-iOS-x86_64-nobitcode/lib/libcurl.a" \
-		"/tmp/${CURL_VERSION}-iOS-i386-nobitcode/lib/libcurl.a" \
-		-create -output lib/libcurl_iOS_nobitcode.a
-
-fi
 
 echo -e "${bold}Cleaning up${dim}"
 rm -rf /tmp/${CURL_VERSION}-*

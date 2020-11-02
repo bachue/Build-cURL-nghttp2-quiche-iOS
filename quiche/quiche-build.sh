@@ -144,7 +144,6 @@ build()
 
 	pushd . > /dev/null
 	cd "${QUICHE_VERSION}"
-	# cargo lipo -v --targets "$TARGETS" --release --features "pkg-config-meta,qlog" &> "/tmp/${QUICHE_VERSION}-${TARGET}.log" 
         cargo build -Z build-std --target "$TARGET" --release --features pkg-config-meta,qlog
 	popd > /dev/null
 }
@@ -177,11 +176,13 @@ for TARGET in x86_64-apple-darwin
 do
     build "$TARGET"
     ln "${QUICHE_VERSION}/target/${TARGET}/release/libquiche.a" "Mac/${TARGET}"
+    ln "${QUICHE_VERSION}/target/release/quiche.pc" "Mac/${TARGET}"
+    sed "s/libdir=.*/libdir=${PWD//\//\\/}\/Mac\/${TARGET}/" "Mac/${TARGET}/quiche.pc" > /tmp/quiche.pc
+    mv /tmp/quiche.pc "Mac/${TARGET}/quiche.pc"
     cp -r "${QUICHE_VERSION}/deps/boringssl/src" "Mac/${TARGET}/openssl"
     mkdir -p "Mac/${TARGET}/openssl/lib"
     ln $(find "${QUICHE_VERSION}/target/${TARGET}/release/" -type f -name libssl.a -o -type f -name libcrypto.a) "Mac/${TARGET}/openssl/lib"
 done
-ln "${QUICHE_VERSION}/target/release/quiche.pc" Mac/quiche.pc
 lipo $(find Mac -type f -name libquiche.a) -create -output lib/libquiche_Mac.a
 lipo $(find Mac -type f -name libssl.a) -create -output lib/libssl_Mac.a
 lipo $(find Mac -type f -name libcrypto.a) -create -output lib/libcrypto_Mac.a
@@ -191,11 +192,13 @@ for TARGET in aarch64-apple-ios x86_64-apple-ios armv7-apple-ios armv7s-apple-io
 do
     build "$TARGET"
     ln "${QUICHE_VERSION}/target/${TARGET}/release/libquiche.a" "iOS/${TARGET}"
+    ln "${QUICHE_VERSION}/target/release/quiche.pc" "iOS/${TARGET}"
+    sed "s/libdir=.*/libdir=${PWD//\//\\/}\/iOS\/${TARGET}/" "iOS/${TARGET}/quiche.pc" > /tmp/quiche.pc
+    mv /tmp/quiche.pc "iOS/${TARGET}/quiche.pc"
     cp -r "${QUICHE_VERSION}/deps/boringssl/src" "iOS/${TARGET}/openssl"
     mkdir -p iOS/${TARGET}/openssl/lib
     ln $(find "${QUICHE_VERSION}/target/${TARGET}/release/" -type f -name libssl.a -o -type f -name libcrypto.a) "iOS/${TARGET}/openssl/lib"
 done
-ln "${QUICHE_VERSION}/target/release/quiche.pc" iOS/quiche.pc
 lipo $(find iOS -type f -name libquiche.a) -create -output lib/libquiche_iOS.a
 lipo $(find iOS -type f -name libssl.a) -create -output lib/libssl_iOS.a
 lipo $(find iOS -type f -name libcrypto.a) -create -output lib/libcrypto_iOS.a

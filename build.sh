@@ -23,7 +23,6 @@ QUICHE="v0.6.0"          # https://github.com/cloudflare/quiche.git
 engine=""
 buildnghttp2="-2"
 buildquiche="-q"
-disablebitcode=""
 colorflag=""
 
 # Formatting
@@ -53,14 +52,13 @@ usage ()
 	echo "         -d             Compile without HTTP2 support"
 	echo "         -f             Compile without QUICHE support"
 	echo "         -e             Compile with OpenSSL engine support" # TODO: THINK ABOUT REMOVING IT
-	echo "         -b             Compile without bitcode"             # TODO: THINK ABOUT REMOVING IT
 	echo "         -x             No color output"
 	echo "         -h             Show usage"
 	echo
     exit 127
 }
 
-while getopts "c:n:q:dfebxh\?" o; do
+while getopts "c:n:q:dfexh\?" o; do
     case "${o}" in
 		c)
 			LIBCURL="${OPTARG}"
@@ -79,9 +77,6 @@ while getopts "c:n:q:dfebxh\?" o; do
 			;;
 		e)
 			engine="-e"
-			;;
-		b)
-			disablebitcode="-b"
 			;;
 		x)
 			bold=""
@@ -131,7 +126,7 @@ fi
 echo
 echo -e "${bold}Building Curl${normal}"
 cd curl
-./libcurl-build.sh -v "$LIBCURL" $disablebitcode $colorflag $buildnghttp2 $buildquiche
+./libcurl-build.sh -v "$LIBCURL" $colorflag $buildnghttp2 $buildquiche
 cd ..
 
 echo
@@ -181,7 +176,8 @@ echo "  See $EXAMPLE"
 mkdir -p "$EXAMPLE"/{libs,include}
 cp quiche/lib/libcrypto_iOS.a "$EXAMPLE/libs/libcrypto.a"
 cp quiche/lib/libssl_iOS.a "$EXAMPLE/libs/libssl.a"
-cp quiche/quiche-${QUICHE}/deps/boringssl/src/include/openssl/* "$EXAMPLE/include/openssl/"
+mkdir "$EXAMPLE/include/openssl/"
+cp -r quiche/quiche-${QUICHE}/deps/boringssl/src/include/openssl/* "$EXAMPLE/include/openssl/"
 cp curl/include/curl/* "$EXAMPLE/include/curl/"
 cp curl/lib/libcurl_iOS.a "$EXAMPLE/libs/libcurl.a"
 cp nghttp2/lib/libnghttp2_iOS.a "$EXAMPLE/libs/libnghttp2.a"

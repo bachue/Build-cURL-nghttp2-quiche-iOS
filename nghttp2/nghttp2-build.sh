@@ -128,8 +128,8 @@ buildMac()
 		TARGET="darwin64-x86_64-cc"
 	fi
 
-	export CC="${BUILD_TOOLS}/usr/bin/clang -fembed-bitcode"
-	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -fembed-bitcode"
+	export CC="${BUILD_TOOLS}/usr/bin/clang"
+	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2"
 	export LDFLAGS="-arch ${ARCH}"
 
 	pushd . > /dev/null
@@ -144,7 +144,6 @@ buildMac()
 buildIOS()
 {
 	ARCH=$1
-	BITCODE=$2
 
 	pushd . > /dev/null
 	cd "${NGHTTP2_VERSION}"
@@ -155,30 +154,24 @@ buildIOS()
 		PLATFORM="iPhoneOS"
 	fi
 
-		if [[ "${BITCODE}" == "nobitcode" ]]; then
-				CC_BITCODE_FLAG=""
-		else
-				CC_BITCODE_FLAG="-fembed-bitcode"
-		fi
-
 	export $PLATFORM
 	export CROSS_TOP="${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer"
 	export CROSS_SDK="${PLATFORM}${IOS_SDK_VERSION}.sdk"
 	export BUILD_TOOLS="${DEVELOPER}"
 	export CC="${BUILD_TOOLS}/usr/bin/gcc"
-	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -miphoneos-version-min=${IOS_MIN_SDK_VERSION} ${CC_BITCODE_FLAG}"
+	export CFLAGS="-arch ${ARCH} -pipe -Os -gdwarf-2 -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -miphoneos-version-min=${IOS_MIN_SDK_VERSION}"
 	export LDFLAGS="-arch ${ARCH} -isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK}"
 
 	echo -e "${subbold}Building ${NGHTTP2_VERSION} for ${PLATFORM} ${IOS_SDK_VERSION} ${archbold}${ARCH}${dim}"
 		if [[ "${ARCH}" == "arm64" || "${ARCH}" == "arm64e"  ]]; then
-		./configure --disable-shared --disable-app --disable-threads --enable-lib-only  --prefix="${NGHTTP2}/iOS/${ARCH}" --host="arm-apple-darwin" &> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log"
+		./configure --disable-shared --disable-app --disable-threads --enable-lib-only  --prefix="${NGHTTP2}/iOS/${ARCH}" --host="arm-apple-darwin" &> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}.log"
 		else
-		./configure --disable-shared --disable-app --disable-threads --enable-lib-only --prefix="${NGHTTP2}/iOS/${ARCH}" --host="${ARCH}-apple-darwin" &> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log"
+		./configure --disable-shared --disable-app --disable-threads --enable-lib-only --prefix="${NGHTTP2}/iOS/${ARCH}" --host="${ARCH}-apple-darwin" &> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}.log"
 		fi
 
-		make -j8 >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
-		make install >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
-		make clean >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}-${BITCODE}.log" 2>&1
+		make -j8 >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}.log" 2>&1
+		make install >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}.log" 2>&1
+		make clean >> "/tmp/${NGHTTP2_VERSION}-iOS-${ARCH}.log" 2>&1
 		popd > /dev/null
 }
 
@@ -211,13 +204,13 @@ lipo \
 		"${NGHTTP2}/Mac/x86_64/lib/libnghttp2.a" \
 		-create -output "${NGHTTP2}/lib/libnghttp2_Mac.a"
 
-echo -e "${bold}Building iOS libraries (bitcode)${dim}"
-buildIOS "armv7" "bitcode"
-buildIOS "armv7s" "bitcode"
-buildIOS "arm64" "bitcode"
-buildIOS "arm64e" "bitcode"
-buildIOS "x86_64" "bitcode"
-buildIOS "i386" "bitcode"
+echo -e "${bold}Building iOS libraries${dim}"
+buildIOS "armv7"
+buildIOS "armv7s"
+buildIOS "arm64"
+buildIOS "arm64e"
+buildIOS "x86_64"
+buildIOS "i386"
 
 lipo \
 	"${NGHTTP2}/iOS/armv7/lib/libnghttp2.a" \
