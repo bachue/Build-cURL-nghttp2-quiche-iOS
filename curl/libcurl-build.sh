@@ -170,6 +170,7 @@ buildMac()
             --enable-optimize \
             --enable-static \
             --enable-ipv6 \
+            --without-libidn2 \
             --with-random=/dev/urandom \
             ${NGHTTP2CFG} ${OPENSSLCFG} ${QUICHECFG} \
             --host=${HOST} &> "/tmp/${CURL_VERSION}-${ARCH}.log"
@@ -219,6 +220,7 @@ buildIOS()
                     --disable-shared \
                     --enable-static \
                     --with-random=/dev/urandom \
+                    --without-libidn2 \
                     --with-ssl="${QUICHE}/iOS/${HOST}/openssl/" \
 		    ${NGHTTP2CFG} ${OPENSSLCFG} ${QUICHECFG} --host="arm-apple-darwin" &> "/tmp/${CURL_VERSION}-iOS-${ARCH}.log"
 	else
@@ -227,6 +229,7 @@ buildIOS()
                     --disable-shared \
                     --enable-static \
                     --with-random=/dev/urandom \
+                    --without-libidn2 \
                     --with-ssl="${QUICHE}/iOS/${HOST}/openssl/" \
                     ${NGHTTP2CFG} ${OPENSSLCFG} ${QUICHECFG} --host="${ARCH}-apple-darwin" &> "/tmp/${CURL_VERSION}-iOS-${ARCH}.log"
 	fi
@@ -245,20 +248,20 @@ mkdir -p include/curl/
 
 rm -rf "/tmp/${CURL_VERSION}-*"
 rm -rf "/tmp/${CURL_VERSION}-*.log"
-
-rm -rf "${CURL_VERSION}"
-
-if [ ! -f ${CURL_VERSION}.tar.gz ]; then
-	echo "Downloading ${CURL_VERSION}.tar.gz"
-	curl -LO http://mirrors.qiniu-solutions.com/${CURL_VERSION}.tar.gz
-else
-	echo "Using ${CURL_VERSION}.tar.gz"
-fi
-
-rm -rf "${CURL_VERSION}"
-echo "Unpacking curl"
-tar xfz "${CURL_VERSION}.tar.gz"
-
+# 
+# rm -rf "${CURL_VERSION}"
+# 
+# if [ ! -f ${CURL_VERSION}.tar.gz ]; then
+# 	echo "Downloading ${CURL_VERSION}.tar.gz"
+# 	curl -LO http://mirrors.qiniu-solutions.com/${CURL_VERSION}.tar.gz
+# else
+# 	echo "Using ${CURL_VERSION}.tar.gz"
+# fi
+# 
+# rm -rf "${CURL_VERSION}"
+# echo "Unpacking curl"
+# tar xfz "${CURL_VERSION}.tar.gz"
+# 
 echo -e "${bold}Building Mac libraries${dim}"
 buildMac "x86_64"
 
@@ -292,7 +295,7 @@ lipo \
 
 echo -e "${bold}Cleaning up${dim}"
 rm -rf /tmp/${CURL_VERSION}-*
-rm -rf ${CURL_VERSION}
+# rm -rf ${CURL_VERSION}
 
 echo "Checking libraries"
 xcrun -sdk iphoneos lipo -info lib/*.a

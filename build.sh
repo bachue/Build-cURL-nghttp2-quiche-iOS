@@ -165,7 +165,7 @@ cp quiche/lib/libquiche_Mac.a $ARCHIVE/lib/MacOS/libquiche.a
 cp nghttp2/lib/libnghttp2_iOS.a $ARCHIVE/lib/iOS/libnghttp2.a
 cp nghttp2/lib/libnghttp2_Mac.a $ARCHIVE/lib/MacOS/libnghttp2.a
 # archive header files
-cp quiche/quiche-${QUICHE}/deps/boringssl/src/include/openssl/* "$ARCHIVE/include/openssl"
+cp -r quiche/quiche-${QUICHE}/deps/boringssl/src/include/openssl/* "$ARCHIVE/include/openssl"
 cp curl/include/curl/* "$ARCHIVE/include/curl"
 # archive root certs
 curl -s https://curl.haxx.se/ca/cacert.pem > $ARCHIVE/cacert.pem
